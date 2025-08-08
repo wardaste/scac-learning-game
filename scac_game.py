@@ -261,10 +261,16 @@ def play_game_page():
         with col3:
             st.metric("Total", st.session_state.total_questions)
         with col4:
-            # Timer
+            # Timer with live updates
             if st.session_state.question_start_time and not getattr(st.session_state, 'answer_submitted', False):
+                # Live timer that updates every 0.1 seconds
+                timer_placeholder = st.empty()
                 elapsed = time.time() - st.session_state.question_start_time
-                st.metric("Time", f"{elapsed:.1f}s")
+                timer_placeholder.metric("Time", f"{elapsed:.1f}s")
+                
+                # Auto-refresh for live timer
+                time.sleep(0.1)
+                st.rerun()
             elif getattr(st.session_state, 'answer_submitted', False):
                 st.metric("Time", f"{getattr(st.session_state, 'last_answer_time', 0):.1f}s")
         
@@ -285,7 +291,7 @@ def play_game_page():
                     
                     col1, col2 = st.columns([1, 1])
                     with col1:
-                        submitted = st.form_submit_button("Submit Answer (Press Enter)")
+                        submitted = st.form_submit_button("Submit Answer (or Press Enter)")
                     with col2:
                         hint_clicked = st.form_submit_button("Show Hint")
                     
@@ -301,7 +307,7 @@ def play_game_page():
                     
                     col1, col2 = st.columns([1, 1])
                     with col1:
-                        submitted = st.form_submit_button("Submit Answer (Press Enter)")
+                        submitted = st.form_submit_button("Submit Answer (or Press Enter)")
                     with col2:
                         hint_clicked = st.form_submit_button("Show Hint")
                     
@@ -329,23 +335,20 @@ def play_game_page():
                     st.write(f"**Ship Mode:** {scac_info['ship_mode']}")
                     st.write(f"**Details:** {scac_info['details']}")
             
-            # Next question form
-            with st.form(key=f"next_form_{st.session_state.total_questions}"):
-                st.write("")  # Add some space
-                next_clicked = st.form_submit_button("Next Question ➡️ (Press Enter)", use_container_width=True)
-                
-                if next_clicked:
-                    # Reset for next question
-                    st.session_state.current_question = generate_question(scacs_df)
-                    if st.session_state.current_question:
-                        st.session_state.question_start_time = time.time()
-                        st.session_state.answer_submitted = False
-                        # Clear the last answer info
-                        if hasattr(st.session_state, 'last_answer_correct'):
-                            delattr(st.session_state, 'last_answer_correct')
-                        if hasattr(st.session_state, 'last_scac_info'):
-                            delattr(st.session_state, 'last_scac_info')
-                    st.rerun()
+            # Next question button
+            st.write("")  # Add some space
+            if st.button("Next Question ➡️", use_container_width=True):
+                # Reset for next question
+                st.session_state.current_question = generate_question(scacs_df)
+                if st.session_state.current_question:
+                    st.session_state.question_start_time = time.time()
+                    st.session_state.answer_submitted = False
+                    # Clear the last answer info
+                    if hasattr(st.session_state, 'last_answer_correct'):
+                        delattr(st.session_state, 'last_answer_correct')
+                    if hasattr(st.session_state, 'last_scac_info'):
+                        delattr(st.session_state, 'last_scac_info')
+                st.rerun()
 
 def process_answer(user_answer, scacs_df):
     question = st.session_state.current_question
