@@ -261,12 +261,18 @@ def play_game_page():
         with col3:
             st.metric("Total", st.session_state.total_questions)
         with col4:
-            # Timer
+            # Timer with live updates
             if st.session_state.question_start_time and not getattr(st.session_state, 'answer_submitted', False):
-                display_live_timer()
+                elapsed = time.time() - st.session_state.question_start_time
+                st.metric("Time", f"{elapsed:.1f}s")
+                
+                # Auto-refresh every 0.5 seconds for live updates
+                if elapsed < 30:  # Only refresh for first 30 seconds to avoid infinite loops
+                    time.sleep(0.5)
+                    st.rerun()
+                    
             elif getattr(st.session_state, 'answer_submitted', False):
-                st.metric("Time", f"{getattr(st.session_state, 'last_answer_time', 0):.1f}s")        
-
+                st.metric("Time", f"{getattr(st.session_state, 'last_answer_time', 0):.1f}s")
         # Display question
         question = st.session_state.current_question
         st.subheader(question['question'])
@@ -451,24 +457,7 @@ def admin_page():
                         delete_scac(row['id'])
                         st.rerun()
 
-def display_live_timer():
-    # Get the actual start time from session state
-    start_time_ms = int(st.session_state.question_start_time * 1000)  # Convert to milliseconds
-    
-    st.markdown(f"""
-    <div style="font-size: 24px; 
-        font-weight: bold; 
-        color: #ff6b6b; 
-        text-align: center; 
-        padding: 10px; 
-        border: 2px solid #ff6b6b; 
-        border-radius: 5px;
-        margin: 10px 0;" id="timer-display">
-        Time: <span id="timer-value">0.0</span>s
-    </div>
-    
-    
-    """, unsafe_allow_html=True)
+
 
 if __name__ == "__main__":
     main()
