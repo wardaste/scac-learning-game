@@ -341,6 +341,8 @@ def play_game_page():
                 save_score(st.session_state.player_name, st.session_state.score, 
                           st.session_state.correct_answers, st.session_state.total_questions)
                 st.session_state.game_active = False
+                # Reset the used questions list for new game
+                st.session_state.used_questions = []
                 st.rerun()
             return
         
