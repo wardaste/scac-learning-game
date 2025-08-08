@@ -463,21 +463,32 @@ def admin_page():
     
     with tab1:
         st.subheader("Add New SCAC")
-        with st.form("add_scac"):
+        
+        # Use session state to control form clearing
+        if 'form_key' not in st.session_state:
+            st.session_state.form_key = 0
+        
+        with st.form(key=f"add_scac_{st.session_state.form_key}"):
             scac_code = st.text_input("SCAC Code")
             carrier_name = st.text_input("Carrier Name")
             ship_mode = st.text_input("Ship Mode")
-            details = st.text_area("Details", height=100)
+            details = st.text_area("Details (optional)", height=100, help="Additional information about this carrier")
             
             if st.form_submit_button("Add SCAC"):
-                if all([scac_code, carrier_name, ship_mode, details]):
-                    if add_scac(scac_code.upper(), carrier_name, ship_mode, details):
+                # Only require the first 3 fields (details is optional)
+                if all([scac_code, carrier_name, ship_mode]):
+                    # Use empty string if details is not provided
+                    details_to_save = details if details.strip() else "No additional details provided"
+                    
+                    if add_scac(scac_code.upper(), carrier_name, ship_mode, details_to_save):
                         st.success("SCAC added successfully!")
+                        # Increment form key to clear the form
+                        st.session_state.form_key += 1
                         st.rerun()
                     else:
                         st.error("SCAC code already exists!")
                 else:
-                    st.error("Please fill in all fields.")
+                    st.error("Please fill in SCAC Code, Carrier Name, and Ship Mode. Details are optional.")
     
     with tab2:
         st.subheader("All SCACs")
