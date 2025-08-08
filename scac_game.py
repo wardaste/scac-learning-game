@@ -276,7 +276,7 @@ def play_game_page():
         if 'answer_submitted' not in st.session_state:
             st.session_state.answer_submitted = False
         
-           # Show answer input only if answer hasn't been submitted yet
+        # Show answer input only if answer hasn't been submitted yet
         if not st.session_state.answer_submitted:
             # Answer input based on question type
             if question['type'] == 'text':
@@ -312,9 +312,27 @@ def play_game_page():
                         st.info(f"💡 Hint: {question['hint']}")
         
         else:
-            # Answer has been submitted, show results and next question button
+            # Answer has been submitted, show results
+            # Display the result with visual indicators
+            if hasattr(st.session_state, 'last_answer_correct'):
+                if st.session_state.last_answer_correct:
+                    st.success(f"✅ Correct! +{st.session_state.last_points} points (answered in {st.session_state.last_answer_time:.1f}s)")
+                else:
+                    st.error(f"❌ Wrong! {st.session_state.last_points} points (correct answer: {st.session_state.last_correct_answer})")
+            
+            # Show SCAC details
+            if hasattr(st.session_state, 'last_scac_info'):
+                with st.expander("📋 SCAC Details"):
+                    scac_info = st.session_state.last_scac_info
+                    st.write(f"**SCAC:** {scac_info['scac_code']}")
+                    st.write(f"**Carrier:** {scac_info['carrier_name']}")
+                    st.write(f"**Ship Mode:** {scac_info['ship_mode']}")
+                    st.write(f"**Details:** {scac_info['details']}")
+            
+            # Next question form
             with st.form(key=f"next_form_{st.session_state.total_questions}"):
-                next_clicked = st.form_submit_button("Next Question ➡️ (Press Enter)")
+                st.write("")  # Add some space
+                next_clicked = st.form_submit_button("Next Question ➡️ (Press Enter)", use_container_width=True)
                 
                 if next_clicked:
                     # Reset for next question
@@ -322,6 +340,11 @@ def play_game_page():
                     if st.session_state.current_question:
                         st.session_state.question_start_time = time.time()
                         st.session_state.answer_submitted = False
+                        # Clear the last answer info
+                        if hasattr(st.session_state, 'last_answer_correct'):
+                            delattr(st.session_state, 'last_answer_correct')
+                        if hasattr(st.session_state, 'last_scac_info'):
+                            delattr(st.session_state, 'last_scac_info')
                     st.rerun()
 
 def process_answer(user_answer, scacs_df):
@@ -342,19 +365,22 @@ def process_answer(user_answer, scacs_df):
     st.session_state.score += points
     st.session_state.total_questions += 1
     
+    # Store results for display
+    st.session_state.last_answer_correct = is_correct
+    st.session_state.last_points = points
+    st.session_state.last_correct_answer = question['correct_answer']
+    
+    # Store SCAC info for display
+    scac_info = scacs_df[scacs_df['id'] == question['scac_id']].iloc[0]
+    st.session_state.last_scac_info = {
+        'scac_code': scac_info['scac_code'],
+        'carrier_name': scac_info['carrier_name'],
+        'ship_mode': scac_info['ship_mode'],
+        'details': scac_info['details']
+    }
+    
     if is_correct:
         st.session_state.correct_answers += 1
-        st.success(f"✅ Correct! +{points} points (answered in {time_taken:.1f}s)")
-    else:
-        st.error(f"❌ Wrong! {points} points (correct answer: {question['correct_answer']})")
-    
-    # Show details about this SCAC
-    scac_info = scacs_df[scacs_df['id'] == question['scac_id']].iloc[0]
-    with st.expander("📋 SCAC Details"):
-        st.write(f"**SCAC:** {scac_info['scac_code']}")
-        st.write(f"**Carrier:** {scac_info['carrier_name']}")
-        st.write(f"**Ship Mode:** {scac_info['ship_mode']}")
-        st.write(f"**Details:** {scac_info['details']}")
     
     # Mark this question as used and set answer as submitted
     st.session_state.used_questions.append(question['scac_id'])
