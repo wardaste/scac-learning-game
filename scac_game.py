@@ -476,7 +476,38 @@ def process_answer(user_answer, scacs_df):
     
     # Check if answer is correct
     if question['type'] == 'text':
-        is_correct = user_answer.lower().strip() == question['correct_answer'].lower().strip()
+        user_input = user_answer.lower().strip()
+        correct_answer = question['correct_answer'].lower().strip()
+        
+        # For text questions, check if user answer contains key parts or vice versa
+        if len(user_input) == 0:
+            is_correct = False
+        elif user_input == correct_answer:
+            # Exact match
+            is_correct = True
+        elif len(user_input) >= 3 and user_input in correct_answer:
+            # User answer is contained in correct answer
+            is_correct = True
+        elif len(correct_answer) >= 3 and correct_answer in user_input:
+            # Correct answer is contained in user answer
+            is_correct = True
+        else:
+            # Check for partial word matches
+            user_words = set(user_input.split())
+            correct_words = set(correct_answer.split())
+            
+            # Remove common words that don't matter
+            common_words = {'the', 'and', 'or', 'of', 'in', 'to', 'a', 'an', 'is', 'are', 'was', 'were'}
+            user_words = user_words - common_words
+            correct_words = correct_words - common_words
+            
+            # If user got at least 50% of the important words right
+            if len(correct_words) > 0:
+                overlap = len(user_words.intersection(correct_words))
+                is_correct = overlap >= len(correct_words) * 0.5
+            else:
+                is_correct = False
+                
     else:  # multiple choice
         is_correct = user_answer == question['correct_answer']
     
