@@ -359,12 +359,16 @@ def play_game_page():
             
             else:
                 # Answer has been submitted, show results
+
                 # Display the result with visual indicators
                 if hasattr(st.session_state, 'last_answer_correct'):
                     if st.session_state.last_answer_correct:
                         st.success(f"✅ Correct! +{st.session_state.last_points} points (answered in {st.session_state.last_answer_time:.1f}s)")
                     else:
-                        st.error(f"❌ Wrong! {st.session_state.last_points} points (correct answer: {st.session_state.last_correct_answer})")
+                        user_answer_display = getattr(st.session_state, 'last_user_answer', 'No answer')
+                        if user_answer_display.strip() == "":
+                            user_answer_display = "No answer (time expired)"
+                        st.error(f"❌ Wrong! {st.session_state.last_points} points (correct answer: {st.session_state.last_correct_answer}, your answer: {user_answer_display})")
                 
                 # Show SCAC details
                 if hasattr(st.session_state, 'last_scac_info'):
@@ -412,6 +416,7 @@ def process_answer(user_answer, scacs_df):
     st.session_state.last_answer_correct = is_correct
     st.session_state.last_points = points
     st.session_state.last_correct_answer = question['correct_answer']
+    st.session_state.last_user_answer = user_answer  # Store what user actually answered
     
     # Store SCAC info for display
     scac_info = scacs_df[scacs_df['id'] == question['scac_id']].iloc[0]
