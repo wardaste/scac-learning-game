@@ -179,7 +179,8 @@ def generate_question(scacs_df):
 def calculate_score(time_taken, is_correct):
     if is_correct:
         # Max 100 points, decreasing with time (30 second max)
-        time_bonus = max(0, 100 - (time_taken * 3))
+        # Ensure we always get positive points for correct answers
+        time_bonus = max(10, 100 - (time_taken * 3))  # Minimum 10 points for correct
         return int(time_bonus)
     else:
         # Penalty increases with speed (faster wrong answers = bigger penalty)
@@ -312,6 +313,9 @@ def process_answer(user_answer, scacs_df):
     else:
         st.error(f"❌ Wrong! {points} points (correct answer: {question['correct_answer']})")
     
+    # Debug info (you can remove this later)
+    st.write(f"Debug - Time taken: {time_taken:.1f}s, Points: {points}, Total score: {st.session_state.score}")
+    
     # Show details about this SCAC
     scac_info = scacs_df[scacs_df['id'] == question['scac_id']].iloc[0]
     with st.expander("📋 SCAC Details"):
@@ -327,7 +331,7 @@ def process_answer(user_answer, scacs_df):
     if st.button("Next Question ➡️"):
         st.session_state.current_question = generate_question(scacs_df)
         if st.session_state.current_question:
-            st.session_state.question_start_time = time.time()
+            st.session_state.question_start_time = time.time()  # Reset timer for new question
         st.rerun()
 
 def leaderboard_page():
