@@ -69,6 +69,19 @@ def delete_scac(scac_id):
     conn.commit()
     conn.close()
 
+def update_scac(scac_id, scac_code, carrier_name, ship_mode, details):
+    conn = sqlite3.connect('scac_game.db')
+    c = conn.cursor()
+    try:
+        c.execute("UPDATE scacs SET scac_code = ?, carrier_name = ?, ship_mode = ?, details = ? WHERE id = ?",
+                 (scac_code, carrier_name, ship_mode, details, scac_id))
+        conn.commit()
+        return True
+    except sqlite3.IntegrityError:
+        return False
+    finally:
+        conn.close()
+
 def save_score(player_name, score, correct, total):
     conn = sqlite3.connect('scac_game.db')
     c = conn.cursor()
@@ -450,9 +463,9 @@ def admin_page():
     st.header("⚙️ Admin Panel")
     
     # Add admin notice
-    st.info("🔒 **Admin Instructions:** After deployment, delete the demo data and add your real SCAC information here. The real data will only exist in the app, not in the public code.")
+    st.info("🔒 **Admin Instructions:** Add and manage your SCAC data here. The data will only exist in the app, not in the public code.")
     
-    tab1, tab2, tab3 = st.tabs(["Add New SCAC", "View All SCACs", "Manage Data"])
+    tab1, tab2, tab3, tab4 = st.tabs(["Add New SCAC", "View All SCACs", "Edit SCAC", "Manage Data"])
     
     with tab1:
         st.subheader("Add New SCAC")
@@ -492,6 +505,52 @@ def admin_page():
             st.info("No SCACs in database yet.")
     
     with tab3:
+        st.subheader("Edit SCAC")
+        scacs_df = get_all_scacs()
+        
+        if len(scacs_df) > 0:
+            # Create a selectbox with SCAC codes and carrier names
+            scac_options = {}
+            for _, row in scacs_df.iterrows():
+                display_name = f"{row['scac_code']} - {row['carrier_name']}"
+                scac_options[display_name] = row['id']
+            
+            selected_display = st.selectbox("Select SCAC to edit:", list(scac_options.keys()))
+            
+            if selected_display:
+                selected_id = scac_options[selected_display]
+                selected_row = scacs_df[scacs_df['id'] == selected_id].iloc[0]
+                
+                # Edit form
+                with st.form("edit_scac"):
+                    st.write(f"**Editing:** {selected_display}")
+                    
+                    edit_scac_code = st.text_input("SCAC Code", value=selected_row['scac_code'])
+                    edit_carrier_name = st.text_input("Carrier Name", value=selected_row['carrier_name'])
+                    edit_ship_mode = st.text_input("Ship Mode", value=selected_row['ship_mode'])
+                    edit_details = st.text_area("Details (optional)", value=selected_row['details'], height=100)
+                    
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if st.form_submit_button("Update SCAC", type="primary"):
+                            if all([edit_scac_code, edit_carrier_name, edit_ship_mode]):
+                                details_to_save = edit_details if edit_details.strip() else "No additional details provided"
+                                
+                                if update_scac(selected_id, edit_scac_code.upper(), edit_carrier_name, edit_ship_mode, details_to_save):
+                                    st.success("SCAC updated successfully!")
+                                    st.rerun()
+                                else:
+                                    st.error("Error updating SCAC. SCAC code might already exist.")
+                            else:
+                                st.error("Please fill in SCAC Code, Carrier Name, and Ship Mode.")
+                    
+                    with col2:
+                        if st.form_submit_button("Cancel", type="secondary"):
+                            st.info("Edit cancelled.")
+        else:
+            st.info("No SCACs available to edit. Add some SCACs first.")
+    
+    with tab4:
         st.subheader("Manage Data")
         st.warning("⚠️ Use with caution - these actions cannot be undone!")
         
@@ -506,6 +565,8 @@ def admin_page():
                     if st.button("Delete", key=f"del_{row['id']}"):
                         delete_scac(row['id'])
                         st.rerun()
+        else:
+            st.info("No SCACs in database to delete.")
 
 
 
