@@ -127,19 +127,41 @@ def generate_question(scacs_df):
     if len(available_scacs) == 0:
         return None
     
-    correct_scac = available_scacs.sample(1).iloc[0]
-    question_types = [
+    # Separate SCACs with meaningful details for bonus questions
+    scacs_with_details = available_scacs[
+        (available_scacs['details'].notna()) & 
+        (available_scacs['details'].str.strip() != '') & 
+        (available_scacs['details'] != 'No additional details provided')
+    ]
+    
+    # Regular question types
+    regular_question_types = [
         "carrier_from_scac",
         "scac_from_carrier", 
         "ship_mode_from_scac",
         "multiple_choice_carrier"
     ]
     
-    question_type = random.choice(question_types)
+    # Bonus question types (only if we have SCACs with details)
+    bonus_question_types = [
+        "bonus_multiple_choice"
+    ]
     
+    # Decide if this should be a bonus question (30% chance if details available)
+    is_bonus = len(scacs_with_details) > 0 and random.random() < 0.3
+    
+    if is_bonus:
+        question_type = random.choice(bonus_question_types)
+        correct_scac = scacs_with_details.sample(1).iloc[0]
+    else:
+        question_type = random.choice(regular_question_types)
+        correct_scac = available_scacs.sample(1).iloc[0]
+    
+    # Regular questions (existing code)
     if question_type == "carrier_from_scac":
         return {
             'type': 'text',
+            'is_bonus': False,
             'question': f"What is the carrier name for SCAC code: {correct_scac['scac_code']}?",
             'correct_answer': correct_scac['carrier_name'].lower(),
             'scac_id': correct_scac['id'],
@@ -149,6 +171,7 @@ def generate_question(scacs_df):
     elif question_type == "scac_from_carrier":
         return {
             'type': 'text',
+            'is_bonus': False,
             'question': f"What is the SCAC code for: {correct_scac['carrier_name']}?",
             'correct_answer': correct_scac['scac_code'].upper(),
             'scac_id': correct_scac['id'],
@@ -158,6 +181,7 @@ def generate_question(scacs_df):
     elif question_type == "ship_mode_from_scac":
         return {
             'type': 'text',
+            'is_bonus': False,
             'question': f"What is the ship mode for {correct_scac['scac_code']} ({correct_scac['carrier_name']})?",
             'correct_answer': correct_scac['ship_mode'].lower(),
             'scac_id': correct_scac['id'],
@@ -175,23 +199,60 @@ def generate_question(scacs_df):
         
         return {
             'type': 'multiple_choice',
+            'is_bonus': False,
             'question': f"Which carrier has the SCAC code: {correct_scac['scac_code']}?",
             'choices': choices,
             'correct_answer': correct_scac['carrier_name'],
             'scac_id': correct_scac['id'],
             'hint': f"Ship Mode: {correct_scac['ship_mode']}"
         }
+    
+    # BONUS QUESTIONS (multiple choice only)
+    elif question_type in ["details_from_scac", "scac_from_details", "multiple_choice_details"]:
+        # Get other SCACs with details for wrong answers
+        other_scacs_with_details = scacs_with_details[scacs_with_details['id'] != correct_scac['id']]
+        
+        if len(other_scacs_with_details) >= 3:
+            wrong_scacs = other_scacs_with_details.sample(3)
+            wrong_answers = wrong_scacs['carrier_name'].tolist()
+        else:
+            # Fall back to any other carriers if not enough with details
+            other_carriers = scacs_df[scacs_df['id'] != correct_scac['id']]['carrier_name'].tolist()
+            wrong_answers = random.sample(other_carriers, min(3, len(other_carriers)))
+        
+        choices = [correct_scac['carrier_name']] + wrong_answers
+        random.shuffle(choices)
+        
+        # Create a details clue (truncate if too long)
+        details_clue = correct_scac['details'][:200] + "..." if len(correct_scac['details']) > 200 else correct_scac['details']
+        
+        return {
+            'type': 'multiple_choice',
+            'is_bonus': True,
+            'question': f"🌟 BONUS: Which carrier is associated with this service/detail: '{details_clue}'?",
+            'choices': choices,
+            'correct_answer': correct_scac['carrier_name'],
+            'scac_id': correct_scac['id'],
+            'hint': f"SCAC: {correct_scac['scac_code']}, Ship Mode: {correct_scac['ship_mode']}"
+        }
 
-def calculate_score(time_taken, is_correct):
+def calculate_score(time_taken, is_correct, is_bonus=False):
     if is_correct:
-        # Max 100 points, decreasing with time (60 second max)
-        # Ensure we always get positive points for correct answers
-        time_bonus = max(10, 100 - (time_taken * 1.5))  # Slower decrease over 60 seconds
-        return int(time_bonus)
+        # Base score calculation
+        base_score = max(10, 100 - (time_taken * 1.5))
+        
+        # Double points for bonus questions
+        if is_bonus:
+            return int(base_score * 2)
+        else:
+            return int(base_score)
     else:
-        # Penalty increases with speed (faster wrong answers = bigger penalty)
-        penalty = min(50, max(10, 50 - (time_taken * 1)))
-        return -int(penalty)
+        # No penalty for bonus questions, regular penalty for others
+        if is_bonus:
+            return 0  # No penalty for wrong bonus answers
+        else:
+            penalty = min(50, max(10, 50 - (time_taken * 1)))
+            return -int(penalty)
 
 def display_sand_timer(elapsed_time):
     # Calculate time remaining
@@ -322,6 +383,12 @@ def play_game_page():
         with col1:
             # Display question
             question = st.session_state.current_question
+            
+            # Add bonus indicator
+            if question.get('is_bonus', False):
+                st.markdown("### 🌟 BONUS QUESTION 🌟")
+                st.info("💰 Double points if correct, no penalty if wrong!")
+            
             st.subheader(question['question'])
             
             # Initialize answer_submitted if it doesn't exist
@@ -413,8 +480,9 @@ def process_answer(user_answer, scacs_df):
     else:  # multiple choice
         is_correct = user_answer == question['correct_answer']
     
-    # Calculate score
-    points = calculate_score(time_taken, is_correct)
+    # Calculate score (check if it's a bonus question)
+    is_bonus = question.get('is_bonus', False)
+    points = calculate_score(time_taken, is_correct, is_bonus)
     st.session_state.score += points
     st.session_state.total_questions += 1
     
