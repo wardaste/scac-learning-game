@@ -261,19 +261,12 @@ def play_game_page():
         with col3:
             st.metric("Total", st.session_state.total_questions)
         with col4:
-            # Timer with live updates
+            # Timer
             if st.session_state.question_start_time and not getattr(st.session_state, 'answer_submitted', False):
-                # Live timer that updates every 0.1 seconds
-                timer_placeholder = st.empty()
-                elapsed = time.time() - st.session_state.question_start_time
-                timer_placeholder.metric("Time", f"{elapsed:.1f}s")
-                
-                # Auto-refresh for live timer
-                time.sleep(0.1)
-                st.rerun()
+                display_live_timer()
             elif getattr(st.session_state, 'answer_submitted', False):
-                st.metric("Time", f"{getattr(st.session_state, 'last_answer_time', 0):.1f}s")
-        
+                st.metric("Time", f"{getattr(st.session_state, 'last_answer_time', 0):.1f}s")        
+
         # Display question
         question = st.session_state.current_question
         st.subheader(question['question'])
@@ -307,7 +300,7 @@ def play_game_page():
                     
                     col1, col2 = st.columns([1, 1])
                     with col1:
-                        submitted = st.form_submit_button("Submit Answer (or Press Enter)")
+                        submitted = st.form_submit_button("Submit Answer (Press Enter)")
                     with col2:
                         hint_clicked = st.form_submit_button("Show Hint")
                     
@@ -457,6 +450,22 @@ def admin_page():
                     if st.button("Delete", key=f"del_{row['id']}"):
                         delete_scac(row['id'])
                         st.rerun()
+
+def display_live_timer():
+    st.markdown("""
+    <div style="font-size: 24px; 
+        font-weight: bold; 
+        color: #ff6b6b; 
+        text-align: center; 
+        padding: 10px; 
+        border: 2px solid #ff6b6b; 
+        border-radius: 5px;
+        margin: 10px 0;" id="timer-display">
+        Time: <span id="timer-value">0.0</span>s
+    </div>
+    
+    
+    """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
