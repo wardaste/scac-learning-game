@@ -8,7 +8,7 @@ import pandas as pd
 # Page config
 st.set_page_config(
     page_title="SCAC Learning Game",
-    page_icon="🚢",
+    page_icon="🚚",
     layout="wide"
 )
 
@@ -214,7 +214,7 @@ def main():
     init_database()
     initialize_game_state()
     
-    st.title("🚢 SCAC Learning Game")
+    st.title("🚚 SCAC Learning Game")
     
     # Sidebar for navigation
     st.sidebar.title("Navigation")
@@ -235,7 +235,7 @@ def play_game_page():
     
     # Only show header and name input when game is not active
     if not st.session_state.game_active:
-        st.header("🚢 Flash Card Game")
+        st.header("🚚 Flash Card Game")
         st.write("Test your knowledge of SCACs, carriers, and ship modes!")
         
         # Player name input
