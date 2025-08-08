@@ -464,9 +464,9 @@ def admin_page():
     with tab1:
         st.subheader("Add New SCAC")
         with st.form("add_scac"):
-            scac_code = st.text_input("SCAC Code (e.g., CTII)")
-            carrier_name = st.text_input("Carrier Name (e.g., Central Transport)")
-            ship_mode = st.text_input("Ship Mode (e.g., LTL (less-than-truckload))")
+            scac_code = st.text_input("SCAC Code")
+            carrier_name = st.text_input("Carrier Name")
+            ship_mode = st.text_input("Ship Mode")
             details = st.text_area("Details", height=100)
             
             if st.form_submit_button("Add SCAC"):
