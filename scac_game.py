@@ -178,14 +178,56 @@ def generate_question(scacs_df):
 
 def calculate_score(time_taken, is_correct):
     if is_correct:
-        # Max 100 points, decreasing with time (30 second max)
+        # Max 100 points, decreasing with time (60 second max)
         # Ensure we always get positive points for correct answers
-        time_bonus = max(10, 100 - (time_taken * 3))  # Minimum 10 points for correct
+        time_bonus = max(10, 100 - (time_taken * 1.5))  # Slower decrease over 60 seconds
         return int(time_bonus)
     else:
         # Penalty increases with speed (faster wrong answers = bigger penalty)
-        penalty = min(50, max(10, 50 - (time_taken * 2)))
+        penalty = min(50, max(10, 50 - (time_taken * 1)))
         return -int(penalty)
+
+def display_sand_timer(elapsed_time):
+    # Calculate percentage of time remaining (60 seconds total)
+    time_remaining = max(0, 60 - elapsed_time)
+    percentage_full = (time_remaining / 60) * 100
+    
+    # Color changes as time runs out
+    if percentage_full > 50:
+        color = "#4CAF50"  # Green
+    elif percentage_full > 20:
+        color = "#FF9800"  # Orange
+    else:
+        color = "#F44336"  # Red
+    
+    # Create the sand timer visual
+    st.markdown(f"""
+    <div style="text-align: center; margin: 10px 0;">
+        <div style="width: 60px;
+            height: 100px;
+            border: 3px solid #333;
+            border-radius: 10px 10px 5px 5px;
+            margin: 0 auto;
+            position: relative;
+            background: linear-gradient(to bottom, {color} 0%, {color} {percentage_full}%, #f0f0f0 {percentage_full}%, #f0f0f0 100%);">
+            <div style="position: absolute;
+                bottom: -5px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 0;
+                height: 0;
+                border-left: 15px solid transparent;
+                border-right: 15px solid transparent;
+                border-top: 15px solid #333;"></div>
+        </div>
+        <div style="font-size: 12px;
+            color: {color};
+            font-weight: bold;
+            margin-top: 5px;">
+            {time_remaining:.0f}s left
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
 # Main app
 def main():
@@ -261,18 +303,21 @@ def play_game_page():
         with col3:
             st.metric("Total", st.session_state.total_questions)
         with col4:
-            # Timer with live updates
+            # Visual sand timer
             if st.session_state.question_start_time and not getattr(st.session_state, 'answer_submitted', False):
                 elapsed = time.time() - st.session_state.question_start_time
-                st.metric("Time", f"{elapsed:.1f}s")
+                display_sand_timer(elapsed)
                 
-                # Auto-refresh every 0.5 seconds for live updates
-                if elapsed < 30:  # Only refresh for first 30 seconds to avoid infinite loops
-                    time.sleep(0.5)
+                # Auto-submit if time runs out
+                if elapsed >= 60:
+                    st.error("⏰ Time's up!")
+                    # Auto-submit with empty answer
+                    process_answer("", scacs_df)
                     st.rerun()
                     
             elif getattr(st.session_state, 'answer_submitted', False):
                 st.metric("Time", f"{getattr(st.session_state, 'last_answer_time', 0):.1f}s")
+
         # Display question
         question = st.session_state.current_question
         st.subheader(question['question'])
