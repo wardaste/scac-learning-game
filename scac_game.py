@@ -191,120 +191,64 @@ def display_sand_timer(elapsed_time):
     # Calculate percentage of time remaining (60 seconds total)
     time_remaining = max(0, 60 - elapsed_time)
     percentage_remaining = (time_remaining / 60) * 100
-    percentage_elapsed = ((elapsed_time) / 60) * 100
+    percentage_elapsed = (elapsed_time / 60) * 100
     
-    # Limit percentages to 100%
+    # Limit to 100%
     percentage_remaining = min(100, percentage_remaining)
     percentage_elapsed = min(100, percentage_elapsed)
     
     # Color changes as time runs out
     if percentage_remaining > 50:
-        sand_color = "#4CAF50"  # Green
-        text_color = "#4CAF50"
+        color = "#4CAF50"  # Green
     elif percentage_remaining > 20:
-        sand_color = "#FF9800"  # Orange
-        text_color = "#FF9800"
+        color = "#FF9800"  # Orange
     else:
-        sand_color = "#F44336"  # Red
-        text_color = "#F44336"
+        color = "#F44336"  # Red
     
-    # Create the hourglass sand timer
+    # Simple hourglass using Unicode and bars
     st.markdown(f"""
     <div style="text-align: center; margin: 10px 0;">
-        <div style="position: relative; width: 80px; height: 120px; margin: 0 auto;">
-            
-            
-            <div style="position: absolute;
-                top: 0;
-                left: 50%;
-                transform: translateX(-50%);
-                width: 0;
-                height: 0;
-                border-left: 30px solid transparent;
-                border-right: 30px solid transparent;
-                border-bottom: 50px solid #ddd;
-                z-index: 1;"></div>
-            
-            
-            <div style="position: absolute;
-                top: {50 - (percentage_remaining * 0.5)}px;
-                left: 50%;
-                transform: translateX(-50%);
-                width: 0;
-                height: 0;
-                border-left: {30 * (percentage_remaining / 100)}px solid transparent;
-                border-right: {30 * (percentage_remaining / 100)}px solid transparent;
-                border-bottom: {50 * (percentage_remaining / 100)}px solid {sand_color};
-                z-index: 2;"></div>
-            
-            
-            <div style="position: absolute;
-                top: 48px;
-                left: 50%;
-                transform: translateX(-50%);
-                width: 4px;
-                height: 4px;
-                background: #333;
-                border-radius: 50%;
-                z-index: 3;"></div>
-            
-            
-            <div style="position: absolute;
-                bottom: 0;
-                left: 50%;
-                transform: translateX(-50%);
-                width: 0;
-                height: 0;
-                border-left: 30px solid transparent;
-                border-right: 30px solid transparent;
-                border-top: 50px solid #ddd;
-                z-index: 1;"></div>
-            
-            
-            <div style="position: absolute;
-                bottom: 0;
-                left: 50%;
-                transform: translateX(-50%);
-                width: 0;
-                height: 0;
-                border-left: {30 * (percentage_elapsed / 100)}px solid transparent;
-                border-right: {30 * (percentage_elapsed / 100)}px solid transparent;
-                border-top: {50 * (percentage_elapsed / 100)}px solid {sand_color};
-                z-index: 2;"></div>
-            
-            
-            <div style="position: absolute;
-                top: -2px;
-                left: 50%;
-                transform: translateX(-50%);
-                width: 0;
-                height: 0;
-                border-left: 32px solid transparent;
-                border-right: 32px solid transparent;
-                border-bottom: 52px solid transparent;
-                border-top: 2px solid #333;
-                z-index: 4;"></div>
-            
-            <div style="position: absolute;
-                bottom: -2px;
-                left: 50%;
-                transform: translateX(-50%);
-                width: 0;
-                height: 0;
-                border-left: 32px solid transparent;
-                border-right: 32px solid transparent;
-                border-top: 52px solid transparent;
-                border-bottom: 2px solid #333;
-                z-index: 4;"></div>
-            
+        
+        <div style="font-size: 40px; margin-bottom: 10px;">⏳</div>
+        
+        
+        <div style="margin: 5px 0;">
+            <div style="font-size: 12px; color: #666;">Time Remaining</div>
+            <div style="width: 60px;
+                height: 8px;
+                background: #ddd;
+                border-radius: 4px;
+                margin: 2px auto;
+                overflow: hidden;">
+                <div style="width: {percentage_remaining}%;
+                    height: 100%;
+                    background: {color};
+                    transition: width 0.3s ease;"></div>
+            </div>
         </div>
         
         
-        <div style="font-size: 12px;
-            color: {text_color};
+        <div style="margin: 5px 0;">
+            <div style="font-size: 12px; color: #666;">Time Used</div>
+            <div style="width: 60px;
+                height: 8px;
+                background: #ddd;
+                border-radius: 4px;
+                margin: 2px auto;
+                overflow: hidden;">
+                <div style="width: {percentage_elapsed}%;
+                    height: 100%;
+                    background: {color};
+                    transition: width 0.3s ease;"></div>
+            </div>
+        </div>
+        
+        
+        <div style="font-size: 14px;
+            color: {color};
             font-weight: bold;
-            margin-top: 5px;">
-            {time_remaining:.0f}s left
+            margin-top: 8px;">
+            {time_remaining:.0f} seconds left
         </div>
     </div>
     """, unsafe_allow_html=True)
