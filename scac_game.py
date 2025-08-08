@@ -35,18 +35,11 @@ def init_database():
                   timestamp DATETIME)''')
     
     # Insert DEMO data only (safe for public GitHub)
-    sample_data = [
-        ("DEMO", "Demo Carrier Express", "LTL (less-than-truckload)", 
-         "This is sample data for demonstration purposes. Replace with real data using the Admin Panel."),
-        ("TEST", "Test Transport Company", "Truckload", 
-         "This is sample data for demonstration purposes. Replace with real data using the Admin Panel."),
-        ("SAMP", "Sample Shipping Lines", "Ocean", 
-         "This is sample data for demonstration purposes. Replace with real data using the Admin Panel.")
-    ]
+    # No sample data - start with empty database
+    sample_data = []
     
     for data in sample_data:
-        c.execute("INSERT OR IGNORE INTO scacs (scac_code, carrier_name, ship_mode, details) VALUES (?, ?, ?, ?)", data)
-    
+        c.execute("INSERT OR IGNORE INTO scacs (scac_code, carrier_name, ship_mode, details) VALUES (?, ?, ?, ?)", data)    
     conn.commit()
     conn.close()
 
