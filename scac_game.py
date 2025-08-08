@@ -228,19 +228,22 @@ def main():
         admin_page()
 
 def play_game_page():
-    st.header("Flash Card Game")
-    
     scacs_df = get_all_scacs()
     if len(scacs_df) == 0:
         st.error("No SCAC data available. Please add some data in the Admin Panel first.")
         return
     
-    # Player name input
-    if 'player_name' not in st.session_state:
-        st.session_state.player_name = ""
-    
-    player_name = st.text_input("Enter your name:", value=st.session_state.player_name)
-    st.session_state.player_name = player_name
+    # Only show header and name input when game is not active
+    if not st.session_state.game_active:
+        st.header("🚢 Flash Card Game")
+        st.write("Test your knowledge of SCACs, carriers, and ship modes!")
+        
+        # Player name input
+        if 'player_name' not in st.session_state:
+            st.session_state.player_name = ""
+        
+        player_name = st.text_input("Enter your name:", value=st.session_state.player_name)
+        st.session_state.player_name = player_name
     
     if not st.session_state.game_active:
         col1, col2 = st.columns([1, 3])
