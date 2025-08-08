@@ -452,7 +452,10 @@ def admin_page():
                         st.rerun()
 
 def display_live_timer():
-    st.markdown("""
+    # Get the actual start time from session state
+    start_time_ms = int(st.session_state.question_start_time * 1000)  # Convert to milliseconds
+    
+    st.markdown(f"""
     <div style="font-size: 24px; 
         font-weight: bold; 
         color: #ff6b6b; 
