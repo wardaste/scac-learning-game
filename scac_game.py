@@ -294,12 +294,14 @@ def play_game_page():
             
             # Compact stats box
             st.markdown(f"""
-            <div style="background: #f0f2f6;
-                border: 1px solid #ddd;
+            <div style="background: #1e1e1e;
+                border: 1px solid #444;
                 border-radius: 8px;
                 padding: 10px;
                 font-size: 12px;
-                text-align: center;">
+                text-align: center;
+                color: #ffffff;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
                 <div style="font-weight: bold; margin-bottom: 5px;">👤 {st.session_state.player_name}</div>
                 <div>🏆 Score: {st.session_state.score}</div>
                 <div>✅ Correct: {st.session_state.correct_answers}</div>
