@@ -231,6 +231,7 @@ def play_game_page():
                 st.session_state.used_questions = []
                 st.session_state.current_question = generate_question(scacs_df)
                 st.session_state.question_start_time = time.time()
+                st.session_state.answer_submitted = False  # New state variable
                 st.rerun()
         
         with col2:
@@ -251,7 +252,7 @@ def play_game_page():
                 st.rerun()
             return
         
-        # Display current game stats
+        # Display current game stats (these will update immediately after answering)
         col1, col2, col3, col4 = st.columns(4)
         with col1:
             st.metric("Score", st.session_state.score)
@@ -261,40 +262,63 @@ def play_game_page():
             st.metric("Total", st.session_state.total_questions)
         with col4:
             # Timer
-            if st.session_state.question_start_time:
+            if st.session_state.question_start_time and not getattr(st.session_state, 'answer_submitted', False):
                 elapsed = time.time() - st.session_state.question_start_time
                 st.metric("Time", f"{elapsed:.1f}s")
+            elif getattr(st.session_state, 'answer_submitted', False):
+                st.metric("Time", f"{getattr(st.session_state, 'last_answer_time', 0):.1f}s")
         
         # Display question
         question = st.session_state.current_question
         st.subheader(question['question'])
         
-        # Answer input based on question type
-        if question['type'] == 'text':
-            answer = st.text_input("Your answer:", key=f"answer_{st.session_state.total_questions}")
-            
-            col1, col2 = st.columns([1, 1])
-            with col1:
-                if st.button("Submit Answer"):
-                    process_answer(answer, scacs_df)
-            with col2:
-                if st.button("Show Hint"):
-                    st.info(f"💡 Hint: {question['hint']}")
+        # Initialize answer_submitted if it doesn't exist
+        if 'answer_submitted' not in st.session_state:
+            st.session_state.answer_submitted = False
         
-        elif question['type'] == 'multiple_choice':
-            answer = st.radio("Choose your answer:", question['choices'], key=f"mc_{st.session_state.total_questions}")
+        # Show answer input only if answer hasn't been submitted yet
+        if not st.session_state.answer_submitted:
+            # Answer input based on question type
+            if question['type'] == 'text':
+                answer = st.text_input("Your answer:", key=f"answer_{st.session_state.total_questions}")
+                
+                col1, col2 = st.columns([1, 1])
+                with col1:
+                    if st.button("Submit Answer") and answer.strip():
+                        process_answer(answer, scacs_df)
+                        st.rerun()
+                with col2:
+                    if st.button("Show Hint"):
+                        st.info(f"💡 Hint: {question['hint']}")
             
-            col1, col2 = st.columns([1, 1])
-            with col1:
-                if st.button("Submit Answer"):
-                    process_answer(answer, scacs_df)
-            with col2:
-                if st.button("Show Hint"):
-                    st.info(f"💡 Hint: {question['hint']}")
+            elif question['type'] == 'multiple_choice':
+                answer = st.radio("Choose your answer:", question['choices'], key=f"mc_{st.session_state.total_questions}")
+                
+                col1, col2 = st.columns([1, 1])
+                with col1:
+                    if st.button("Submit Answer"):
+                        process_answer(answer, scacs_df)
+                        st.rerun()
+                with col2:
+                    if st.button("Show Hint"):
+                        st.info(f"💡 Hint: {question['hint']}")
+        
+        else:
+            # Answer has been submitted, show results and next question button
+            if st.button("Next Question ➡️"):
+                # Reset for next question
+                st.session_state.current_question = generate_question(scacs_df)
+                if st.session_state.current_question:
+                    st.session_state.question_start_time = time.time()
+                    st.session_state.answer_submitted = False
+                st.rerun()
 
 def process_answer(user_answer, scacs_df):
     question = st.session_state.current_question
     time_taken = time.time() - st.session_state.question_start_time
+    
+    # Store the answer time for display
+    st.session_state.last_answer_time = time_taken
     
     # Check if answer is correct
     if question['type'] == 'text':
@@ -313,9 +337,6 @@ def process_answer(user_answer, scacs_df):
     else:
         st.error(f"❌ Wrong! {points} points (correct answer: {question['correct_answer']})")
     
-    # Debug info (you can remove this later)
-    st.write(f"Debug - Time taken: {time_taken:.1f}s, Points: {points}, Total score: {st.session_state.score}")
-    
     # Show details about this SCAC
     scac_info = scacs_df[scacs_df['id'] == question['scac_id']].iloc[0]
     with st.expander("📋 SCAC Details"):
@@ -324,15 +345,9 @@ def process_answer(user_answer, scacs_df):
         st.write(f"**Ship Mode:** {scac_info['ship_mode']}")
         st.write(f"**Details:** {scac_info['details']}")
     
-    # Mark this question as used
+    # Mark this question as used and set answer as submitted
     st.session_state.used_questions.append(question['scac_id'])
-    
-    # Generate next question or end game
-    if st.button("Next Question ➡️"):
-        st.session_state.current_question = generate_question(scacs_df)
-        if st.session_state.current_question:
-            st.session_state.question_start_time = time.time()  # Reset timer for new question
-        st.rerun()
+    st.session_state.answer_submitted = True
 
 def leaderboard_page():
     st.header("🏆 Leaderboard")
