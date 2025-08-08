@@ -276,42 +276,53 @@ def play_game_page():
         if 'answer_submitted' not in st.session_state:
             st.session_state.answer_submitted = False
         
-        # Show answer input only if answer hasn't been submitted yet
+           # Show answer input only if answer hasn't been submitted yet
         if not st.session_state.answer_submitted:
             # Answer input based on question type
             if question['type'] == 'text':
-                answer = st.text_input("Your answer:", key=f"answer_{st.session_state.total_questions}")
-                
-                col1, col2 = st.columns([1, 1])
-                with col1:
-                    if st.button("Submit Answer") and answer.strip():
+                with st.form(key=f"answer_form_{st.session_state.total_questions}"):
+                    answer = st.text_input("Your answer:", key=f"answer_{st.session_state.total_questions}")
+                    
+                    col1, col2 = st.columns([1, 1])
+                    with col1:
+                        submitted = st.form_submit_button("Submit Answer (Press Enter)")
+                    with col2:
+                        hint_clicked = st.form_submit_button("Show Hint")
+                    
+                    if submitted and answer.strip():
                         process_answer(answer, scacs_df)
                         st.rerun()
-                with col2:
-                    if st.button("Show Hint"):
+                    elif hint_clicked:
                         st.info(f"💡 Hint: {question['hint']}")
             
             elif question['type'] == 'multiple_choice':
-                answer = st.radio("Choose your answer:", question['choices'], key=f"mc_{st.session_state.total_questions}")
-                
-                col1, col2 = st.columns([1, 1])
-                with col1:
-                    if st.button("Submit Answer"):
+                with st.form(key=f"mc_form_{st.session_state.total_questions}"):
+                    answer = st.radio("Choose your answer:", question['choices'], key=f"mc_{st.session_state.total_questions}")
+                    
+                    col1, col2 = st.columns([1, 1])
+                    with col1:
+                        submitted = st.form_submit_button("Submit Answer (Press Enter)")
+                    with col2:
+                        hint_clicked = st.form_submit_button("Show Hint")
+                    
+                    if submitted:
                         process_answer(answer, scacs_df)
                         st.rerun()
-                with col2:
-                    if st.button("Show Hint"):
+                    elif hint_clicked:
                         st.info(f"💡 Hint: {question['hint']}")
         
         else:
             # Answer has been submitted, show results and next question button
-            if st.button("Next Question ➡️"):
-                # Reset for next question
-                st.session_state.current_question = generate_question(scacs_df)
-                if st.session_state.current_question:
-                    st.session_state.question_start_time = time.time()
-                    st.session_state.answer_submitted = False
-                st.rerun()
+            with st.form(key=f"next_form_{st.session_state.total_questions}"):
+                next_clicked = st.form_submit_button("Next Question ➡️ (Press Enter)")
+                
+                if next_clicked:
+                    # Reset for next question
+                    st.session_state.current_question = generate_question(scacs_df)
+                    if st.session_state.current_question:
+                        st.session_state.question_start_time = time.time()
+                        st.session_state.answer_submitted = False
+                    st.rerun()
 
 def process_answer(user_answer, scacs_df):
     question = st.session_state.current_question
