@@ -962,23 +962,14 @@ def admin_page():
             
     with tab5:
         st.subheader("Debug Queries")
-        st.info("Run custom queries to debug issues. Use `scacs_df` as the dataframe variable.")
+        st.write("Debug tab is working!")
     
-        query_code = st.text_area("Enter your query:", 
-                             placeholder="Example: scacs_df[scacs_df['carrier_name'].str.contains('RXO', case=False, na=False)][['carrier_name', 'ship_mode']]",
-                             height=100)
-    
-        if st.button("Run Query"):
-            if query_code.strip():
-                try:
-                    scacs_df = get_all_scacs()
-                    result = eval(query_code)
-                    st.write("**Query Result:**")
-                    st.write(result)
-                except Exception as e:
-                    st.error(f"Query error: {str(e)}")
-            else:
-                st.warning("Please enter a query to run.")    
+        if st.button("Test Button"):
+            st.write("Button clicked!")
+        
+        test_input = st.text_input("Test input:")
+        if test_input:
+            st.write(f"You entered: {test_input}")    
     with tab6:
         st.subheader("Import/Export Data")
         st.info("💾 Backup and restore your SCAC database and leaderboard data")
