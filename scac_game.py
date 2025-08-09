@@ -104,6 +104,58 @@ def get_leaderboard():
     conn.close()
     return df
 
+def delete_leaderboard_user(player_name):
+    conn = sqlite3.connect('scac_game.db')
+    c = conn.cursor()
+    c.execute("DELETE FROM scores WHERE player_name = ?", (player_name,))
+    conn.commit()
+    conn.close()
+
+def get_enhanced_leaderboard():
+    conn = sqlite3.connect('scac_game.db')
+    df = pd.read_sql_query("""
+        SELECT player_name, 
+               MAX(score) as best_score, 
+               MAX(correct_answers) as best_correct,
+               COUNT(*) as games_played,
+               ROUND(AVG(CAST(correct_answers AS FLOAT) / total_questions * 100), 1) as accuracy_pct,
+               MAX(timestamp) as last_played
+        FROM scores 
+        GROUP BY player_name 
+        ORDER BY best_score DESC
+    """, conn)
+    conn.close()
+    
+    # Add time in lead for top player
+    if len(df) > 0:
+        df['time_in_lead'] = ''
+        top_player = df.iloc[0]['player_name']
+        
+        # Get when this player first achieved the top score
+        conn = sqlite3.connect('scac_game.db')
+        first_top_score = pd.read_sql_query("""
+            SELECT MIN(timestamp) as first_top
+            FROM scores 
+            WHERE player_name = ? AND score = (
+                SELECT MAX(score) FROM scores WHERE player_name = ?
+            )
+        """, conn, params=[top_player, top_player])
+        conn.close()
+        
+        if not first_top_score.empty and first_top_score.iloc[0]['first_top']:
+            from datetime import datetime
+            first_top_time = datetime.fromisoformat(first_top_score.iloc[0]['first_top'])
+            time_diff = datetime.now() - first_top_time
+            days = time_diff.days
+            hours = time_diff.seconds // 3600
+            
+            if days > 0:
+                df.loc[0, 'time_in_lead'] = f"{days}d {hours}h"
+            else:
+                df.loc[0, 'time_in_lead'] = f"{hours}h"
+    
+    return df
+
 # Game functions
 def initialize_game_state():
     if 'game_active' not in st.session_state:
@@ -762,7 +814,7 @@ def process_answer(user_answer, scacs_df):
 def leaderboard_page():
     st.header("🏆 Leaderboard")
     
-    leaderboard = get_leaderboard()
+    leaderboard = get_enhanced_leaderboard()
     if len(leaderboard) > 0:
         st.dataframe(
             leaderboard,
@@ -771,6 +823,8 @@ def leaderboard_page():
                 "best_score": "Best Score",
                 "best_correct": "Best Correct",
                 "games_played": "Games Played",
+                "accuracy_pct": "Accuracy %",
+                "time_in_lead": "Time in Lead",
                 "last_played": "Last Played"
             },
             hide_index=True
@@ -899,20 +953,43 @@ def admin_page():
     with tab4:
         st.subheader("Manage Data")
         st.warning("⚠️ Use with caution - these actions cannot be undone!")
-        
-        scacs_df = get_all_scacs()
-        if len(scacs_df) > 0:
-            st.write("**Delete Individual SCACs:**")
-            for _, row in scacs_df.iterrows():
-                col1, col2 = st.columns([3, 1])
-                with col1:
-                    st.write(f"{row['scac_code']} - {row['carrier_name']}")
-                with col2:
-                    if st.button("Delete", key=f"del_{row['id']}"):
-                        delete_scac(row['id'])
-                        st.rerun()
-        else:
-            st.info("No SCACs in database to delete.")
+    
+        # Create two columns for SCAC and Leaderboard management
+        col1, col2 = st.columns(2)
+    
+        with col1:
+            st.write("### SCAC Management")
+            scacs_df = get_all_scacs()
+            if len(scacs_df) > 0:
+                st.write("**Delete Individual SCACs:**")
+                for _, row in scacs_df.iterrows():
+                    scac_col1, scac_col2 = st.columns([3, 1])
+                    with scac_col1:
+                        t.write(f"{row['scac_code']} - {row['carrier_name']}")
+                    with scac_col2:
+                        if st.button("Delete", key=f"del_user_{row['player_name']}"):
+                            delete_leaderboard_user(row['player_name'])
+                            delete_scac(row['id'])
+                            st.rerun()
+            else:
+                st.info("No SCACs in database to delete.")
+    
+        with col2:
+            st.write("### Leaderboard Management")
+            leaderboard_df = get_leaderboard()
+            if len(leaderboard_df) > 0:
+                st.write("**Delete Individual Users:**")
+                for _, row in leaderboard_df.iterrows():
+                    user_col1, user_col2 = st.columns([3, 1])
+                    with user_col1:
+                        st.write(f"{row['name']} - Score: {row['score']}")
+                    with user_col2:
+                        if st.button("Delete", key=f"del_user_{row['id']}"):
+                            delete_leaderboard_user(row['id'])
+                            st.rerun()
+            else:
+                st.info("No users in leaderboard to delete.")
+            
     with tab5:
         st.subheader("Debug Queries")
         st.info("Run custom queries to debug issues. Use `scacs_df` as the dataframe variable.")
