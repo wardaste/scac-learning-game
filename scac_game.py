@@ -840,7 +840,7 @@ def admin_page():
     # Add admin notice
     st.info("🔒 **Admin Instructions:** Add and manage your SCAC data here. The data will only exist in the app, not in the public code.")
     
-    tab1, tab2, tab3, tab4 = st.tabs(["Add New SCAC", "View All SCACs", "Edit SCAC", "Manage Data"])
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["Add New SCAC", "View All SCACs", "Edit SCAC", "Manage Data", "Debug Queries"])
     
     with tab1:
         st.subheader("Add New SCAC")
@@ -942,7 +942,25 @@ def admin_page():
                         st.rerun()
         else:
             st.info("No SCACs in database to delete.")
-
+    with tab5:
+        st.subheader("Debug Queries")
+        st.info("Run custom queries to debug issues. Use `scacs_df` as the dataframe variable.")
+    
+        query_code = st.text_area("Enter your query:", 
+                             placeholder="Example: scacs_df[scacs_df['carrier_name'].str.contains('RXO', case=False, na=False)][['carrier_name', 'ship_mode']]",
+                             height=100)
+    
+        if st.button("Run Query"):
+            if query_code.strip():
+                try:
+                    scacs_df = get_all_scacs()
+                    result = eval(query_code)
+                    st.write("**Query Result:**")
+                    st.write(result)
+                except Exception as e:
+                    st.error(f"Query error: {str(e)}")
+            else:
+                st.warning("Please enter a query to run.")    
 
 
 if __name__ == "__main__":
