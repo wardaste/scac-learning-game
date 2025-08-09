@@ -85,7 +85,7 @@ def update_scac(scac_id, scac_code, carrier_name, ship_mode, details):
 def save_score(player_name, score, correct, total):
     conn = sqlite3.connect('scac_game.db')
     c = conn.cursor()
-    c.execute("INSERT INTO scores (player_name, score, correct_answers, total_questions, timestamp) VALUES (?, ?, ?, ?, ?)",
+    c.execute("INSERT INTO scores (Player, score, correct_answers, total_questions, timestamp) VALUES (?, ?, ?, ?, ?)",
              (player_name, score, correct, total, datetime.now()))
     conn.commit()
     conn.close()
@@ -417,7 +417,7 @@ def display_sand_timer(elapsed_time):
 # Main app
 def main():
     init_database()
-    # initialize_game_state()  # Temporarily disabled
+    initialize_game_state()
     
     st.title("🚚 SCAC Learning Game")
     
@@ -426,8 +426,7 @@ def main():
     page = st.sidebar.selectbox("Choose a page:", ["Play Game", "Leaderboard", "Admin Panel"])
     
     if page == "Play Game":
-        st.info("Play Game temporarily disabled - fixing database issues")
-        # play_game_page()
+        play_game_page()
     elif page == "Leaderboard":
         leaderboard_page()
     elif page == "Admin Panel":
@@ -996,7 +995,7 @@ def admin_page():
                             st.rerun()
             else:
                 st.info("No users in leaderboard to delete.")
-                            
+
     with tab5:
         st.write("DEBUG: Tab5 started")
         st.subheader("Debug Queries")
@@ -1123,8 +1122,8 @@ def import_scores_data(import_df):
     
     for _, row in import_df.iterrows():
         try:
-            c.execute("INSERT INTO scores (player_name, score, correct_answers, total_questions, timestamp) VALUES (?, ?, ?, ?, ?)",
-                     (row['player_name'], row['score'], row['correct_answers'], row['total_questions'], row['timestamp']))
+            c.execute("INSERT INTO scores (Player, score, correct_answers, total_questions, timestamp) VALUES (?, ?, ?, ?, ?)",
+                     (row['Player'], row['score'], row['correct_answers'], row['total_questions'], row['timestamp']))
             success_count += 1
         except Exception as e:
             continue  # Skip problematic rows
