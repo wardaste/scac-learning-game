@@ -121,7 +121,8 @@ def initialize_game_state():
     if 'used_questions' not in st.session_state:
         st.session_state.used_questions = []
 
-def generate_question(scacs_df):    
+def generate_question(scacs_df):
+    available_scacs = scacs_df    
     # Separate SCACs with meaningful details for bonus questions
     scacs_with_details = available_scacs[
         (available_scacs['details'].notna()) & 
