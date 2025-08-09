@@ -316,14 +316,24 @@ def play_game_page():
         col1, col2 = st.columns([1, 3])
         with col1:
             if st.button("🎮 Start Game", disabled=not player_name):
+                # Reset everything for new game
                 st.session_state.game_active = True
                 st.session_state.score = 0
                 st.session_state.correct_answers = 0
                 st.session_state.total_questions = 0
                 st.session_state.used_questions = []
+                st.session_state.answer_submitted = False
+                
+                # Generate first question
                 st.session_state.current_question = generate_question(scacs_df)
                 st.session_state.question_start_time = time.time()
-                st.session_state.answer_submitted = False  # New state variable
+                
+                # Debug: Check if question was generated
+                if st.session_state.current_question is None:
+                    st.error("DEBUG: Failed to generate first question!")
+                else:
+                    st.success("DEBUG: First question generated successfully!")
+                
                 st.rerun()
         
         with col2:
@@ -381,7 +391,22 @@ def play_game_page():
                 <div>⏰ {timer_display}</div>
             </div>
             """, unsafe_allow_html=True)
+        # DEBUG INFO (temporary - remove later)
+        st.write("=== DEBUG INFO ===")
+        st.write(f"Game active: {st.session_state.game_active}")
+        st.write(f"Current question exists: {st.session_state.current_question is not None}")
+        st.write(f"Total SCACs in database: {len(scacs_df)}")
+        st.write(f"Used questions: {len(st.session_state.used_questions)}")
+        st.write(f"Used question IDs: {st.session_state.used_questions}")
         
+        # Check SCACs with details for bonus questions
+        scacs_with_details = scacs_df[
+            (scacs_df['details'].notna()) & 
+            (scacs_df['details'].str.strip() != '') & 
+            (scacs_df['details'] != 'No additional details provided')
+        ]
+        st.write(f"SCACs with details for bonus: {len(scacs_with_details)}")
+        st.write("=== END DEBUG ===")        
         with col1:
             # Display question
             question = st.session_state.current_question
