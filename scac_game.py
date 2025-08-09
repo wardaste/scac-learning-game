@@ -93,12 +93,12 @@ def save_score(player_name, score, correct, total):
 def get_leaderboard():
     conn = sqlite3.connect('scac_game.db')
     df = pd.read_sql_query("""
-        SELECT player_name as Player, MAX(score) as best_score, 
+        SELECT Player, MAX(score) as best_score, 
                MAX(correct_answers) as best_correct,
                COUNT(*) as games_played,
                MAX(timestamp) as last_played
         FROM scores 
-        GROUP BY player_name 
+        GROUP BY Player 
         ORDER BY best_score DESC
     """, conn)
     conn.close()
@@ -107,39 +107,39 @@ def get_leaderboard():
 def delete_leaderboard_user(player_name):
     conn = sqlite3.connect('scac_game.db')
     c = conn.cursor()
-    c.execute("DELETE FROM scores WHERE player_name = ?", (player_name,))
+    c.execute("DELETE FROM scores WHERE Player = ?", (player_name,))
     conn.commit()
     conn.close()
 
 def get_enhanced_leaderboard():
     conn = sqlite3.connect('scac_game.db')
     df = pd.read_sql_query("""
-        SELECT player_name, 
+        SELECT Player, 
                MAX(score) as best_score, 
                MAX(correct_answers) as best_correct,
                COUNT(*) as games_played,
                ROUND(AVG(CAST(correct_answers AS FLOAT) / total_questions * 100), 1) as accuracy_pct,
                MAX(timestamp) as last_played
         FROM scores 
-        GROUP BY player_name 
+        GROUP BY Player 
         ORDER BY best_score DESC
     """, conn)
     conn.close()
     
-    # Add time in lead for top player_name
+    # Add time in lead for top player
     if len(df) > 0:
         df['time_in_lead'] = ''
-        top_player_name = df.iloc[0]['player_name']
+        top_player = df.iloc[0]['Player']
         
-        # Get when this player_name first achieved the top score
+        # Get when this player first achieved the top score
         conn = sqlite3.connect('scac_game.db')
         first_top_score = pd.read_sql_query("""
             SELECT MIN(timestamp) as first_top
             FROM scores 
-            WHERE player_name = ? AND score = (
-                SELECT MAX(score) FROM scores WHERE player_name = ?
+            WHERE Player = ? AND score = (
+                SELECT MAX(score) FROM scores WHERE Player = ?
             )
-        """, conn, params=[top_player_name, top_player_name])
+        """, conn, params=[top_player, top_player])
         conn.close()
         
         if not first_top_score.empty and first_top_score.iloc[0]['first_top']:
@@ -814,7 +814,25 @@ def process_answer(user_answer, scacs_df):
 
 def leaderboard_page():
     st.header("🏆 Leaderboard")
-    st.info("Leaderboard temporarily disabled - fixing database column issues")
+    
+    leaderboard = get_enhanced_leaderboard()
+    if len(leaderboard) > 0:
+        st.dataframe(
+            leaderboard,
+            column_config={
+                "Player": "Player",
+                "best_score": "Best Score",
+                "best_correct": "Best Correct",
+                "games_played": "Games Played",
+                "accuracy_pct": "Accuracy %",
+                "time_in_lead": "Time in Lead",
+                "last_played": "Last Played"
+            },
+            hide_index=True
+        )
+    else:
+        st.info("No scores yet. Play some games to see the leaderboard!")
+
 def get_similar_carriers(carrier_name, scacs_df, similarity_threshold=0.95):
     """Find carriers with similar names"""
     import difflib
@@ -965,8 +983,20 @@ def admin_page():
         
         with col2:
             st.write("### Leaderboard Management")
-            st.info("Temporarily disabled - fixing database issues")
-            
+            leaderboard_df = get_leaderboard()
+            if len(leaderboard_df) > 0:
+                st.write("**Delete Individual Users:**")
+                for _, row in leaderboard_df.iterrows():
+                    user_col1, user_col2 = st.columns([3, 1])
+                    with user_col1:
+                        st.write(f"{row['Player']} - Score: {row['best_score']}")
+                    with user_col2:
+                        if st.button("Delete", key=f"del_user_{row['Player']}"):
+                            delete_leaderboard_user(row['Player'])
+                            st.rerun()
+            else:
+                st.info("No users in leaderboard to delete.")
+                            
     with tab5:
         st.write("DEBUG: Tab5 started")
         st.subheader("Debug Queries")
