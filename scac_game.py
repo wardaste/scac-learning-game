@@ -1102,17 +1102,39 @@ def import_scac_data(import_df):
     conn = sqlite3.connect('scac_game.db')
     c = conn.cursor()
     success_count = 0
+    error_count = 0
+    error_messages = []
     
-    for _, row in import_df.iterrows():
+    # Debug: Print column names
+    st.write(f"CSV columns: {import_df.columns.tolist()}")
+    st.write(f"First row: {import_df.iloc[0].to_dict() if len(import_df) > 0 else 'No data'}")
+    
+    for i, row in import_df.iterrows():
         try:
-            c.execute("INSERT OR REPLACE INTO scacs (scac_code, carrier_name, ship_mode, details) VALUES (?, ?, ?, ?)",
-                     (row['scac_code'], row['carrier_name'], row['ship_mode'], row['details']))
-            success_count += 1
+            # Check if all required columns exist
+            if all(col in row.index for col in ['scac_code', 'carrier_name', 'ship_mode']):
+                details = row.get('details', 'No additional details provided')
+                c.execute("INSERT OR REPLACE INTO scacs (scac_code, carrier_name, ship_mode, details) VALUES (?, ?, ?, ?)",
+                         (row['scac_code'], row['carrier_name'], row['ship_mode'], details))
+                success_count += 1
+            else:
+                missing = [col for col in ['scac_code', 'carrier_name', 'ship_mode'] if col not in row.index]
+                error_messages.append(f"Row {i}: Missing columns: {missing}")
+                error_count += 1
         except Exception as e:
-            continue  # Skip problematic rows
+            error_messages.append(f"Row {i}: Error: {str(e)}")
+            error_count += 1
     
     conn.commit()
     conn.close()
+    
+    if error_count > 0:
+        st.error(f"Encountered {error_count} errors during import")
+        for msg in error_messages[:10]:  # Show first 10 errors
+            st.write(msg)
+        if len(error_messages) > 10:
+            st.write(f"...and {len(error_messages) - 10} more errors")
+    
     return success_count
 
 def import_scores_data(import_df):
