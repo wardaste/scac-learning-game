@@ -871,19 +871,12 @@ def admin_page():
             username = st.text_input("Username:")
             password = st.text_input("Password:", type="password")
             login_button = st.form_submit_button("Login")
-    
+
             if login_button:
                 # Define your admin credentials here
                 ADMIN_USERNAME = "WePayDFM"
                 ADMIN_PASSWORD = "XXXXXXXXXXXX"
-        
-                # Debug information
-                st.write(f"Debug - Form submitted: {login_button}")
-                st.write(f"Debug - Username entered: '{username}'")
-                st.write(f"Debug - Password length: {len(password)}")
-                st.write(f"Debug - Username match: {username == ADMIN_USERNAME}")
-                st.write(f"Debug - Password match: {password == ADMIN_PASSWORD}")
-        
+
                 if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
                     st.session_state.admin_authenticated = True
                     st.success("Login successful! Redirecting...")
@@ -894,6 +887,15 @@ def admin_page():
                         st.error(f"Username mismatch. Expected: '{ADMIN_USERNAME}', Got: '{username}'")
                     if password != ADMIN_PASSWORD:
                         st.error("Password mismatch.")
+        ADMIN_USERNAME = "WePayDFM"
+        ADMIN_PASSWORD = "XXXXXXXXXXXX"
+        
+        if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
+            st.session_state.admin_authenticated = True
+            st.success("Login successful! Redirecting...")
+            st.rerun()
+        else:
+            st.error("Invalid username or password. Please try again.")
         return
     
     # Add logout option
@@ -906,12 +908,9 @@ def admin_page():
     # Add admin notice
     st.info("🔒 **Admin Instructions:** Add and manage your SCAC data here. The data will only exist in the app, not in the public code.")
     
-    st.write("DEBUG: About to create tabs")
     tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["Add New SCAC", "View All SCACs", "Edit SCAC", "Manage Data", "Debug Queries", "Import/Export"])
-    st.write("DEBUG: Tabs created")
 
     with tab1:
-        st.write("DEBUG: Tab1 started")
         st.subheader("Add New SCAC")
         
         # Use session state to control form clearing
@@ -941,7 +940,6 @@ def admin_page():
                     st.error("Please fill in SCAC Code, Carrier Name, and Ship Mode. Details are optional.")
     
     with tab2:
-        st.write("DEBUG: Tab2 started")
         st.subheader("All SCACs")
         scacs_df = get_all_scacs()
         if len(scacs_df) > 0:
@@ -950,7 +948,6 @@ def admin_page():
             st.info("No SCACs in database yet.")
     
     with tab3:
-        st.write("DEBUG: Tab3 started")
         st.subheader("Edit SCAC")
         scacs_df = get_all_scacs()
         
@@ -997,7 +994,6 @@ def admin_page():
             st.info("No SCACs available to edit. Add some SCACs first.")
     
     with tab4:
-        st.write("DEBUG: Tab4 started")
         st.subheader("Manage Data")
         st.warning("⚠️ Use with caution - these actions cannot be undone!")
     
@@ -1037,7 +1033,6 @@ def admin_page():
                 st.info("No users in leaderboard to delete.")
 
     with tab5:
-        st.write("DEBUG: Tab5 started")
         st.subheader("Debug Queries")
         st.info("Run custom queries to debug issues.")
     
@@ -1066,7 +1061,6 @@ def admin_page():
                 st.warning("Please enter a query to run.")
 
     with tab6:
-        st.write("DEBUG: Tab6 started")
         st.subheader("Import/Export Data")
         st.info("💾 Backup and restore your SCAC database and leaderboard data")
         
@@ -1144,10 +1138,6 @@ def import_scac_data(import_df):
     success_count = 0
     error_count = 0
     error_messages = []
-    
-    # Debug: Print column names
-    st.write(f"CSV columns: {import_df.columns.tolist()}")
-    st.write(f"First row: {import_df.iloc[0].to_dict() if len(import_df) > 0 else 'No data'}")
     
     for i, row in import_df.iterrows():
         try:
