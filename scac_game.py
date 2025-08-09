@@ -871,18 +871,29 @@ def admin_page():
             username = st.text_input("Username:")
             password = st.text_input("Password:", type="password")
             login_button = st.form_submit_button("Login")
-            
+    
             if login_button:
                 # Define your admin credentials here
-                ADMIN_USERNAME = "WePayDFM"  # Change this to your desired username
-                ADMIN_PASSWORD = "AmazonDayOne"  # Change this to your desired password
-                
+                ADMIN_USERNAME = "WePayDFM"
+                ADMIN_PASSWORD = "XXXXXXXXXXXX"
+        
+                # Debug information
+                st.write(f"Debug - Form submitted: {login_button}")
+                st.write(f"Debug - Username entered: '{username}'")
+                st.write(f"Debug - Password length: {len(password)}")
+                st.write(f"Debug - Username match: {username == ADMIN_USERNAME}")
+                st.write(f"Debug - Password match: {password == ADMIN_PASSWORD}")
+        
                 if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
                     st.session_state.admin_authenticated = True
                     st.success("Login successful! Redirecting...")
                     st.rerun()
                 else:
                     st.error("Invalid username or password. Please try again.")
+                    if username != ADMIN_USERNAME:
+                        st.error(f"Username mismatch. Expected: '{ADMIN_USERNAME}', Got: '{username}'")
+                    if password != ADMIN_PASSWORD:
+                        st.error("Password mismatch.")
         return
     
     # Add logout option
