@@ -611,11 +611,49 @@ def play_game_page():
                     if st.session_state.last_answer_correct:
                         st.success(f"✅ Correct! +{st.session_state.last_points} points (answered in {st.session_state.last_answer_time:.1f}s)")
                     else:
-                        user_answer_display = getattr(st.session_state, 'last_user_answer', 'No answer')
-                        if user_answer_display.strip() == "":
-                            user_answer_display = "No answer (time expired)"
-                        st.error(f"❌ Wrong! {st.session_state.last_points} points (correct answer: {st.session_state.last_correct_answer}, your answer: {user_answer_display})")
-                
+                        # Handle different question types for wrong answers
+                        question_type = getattr(st.session_state, 'last_question_type', 'text')
+                        
+                        if question_type == 'multi_select':
+                            # Show detailed multi-select results
+                            user_answers = getattr(st.session_state, 'last_user_answer', [])
+                            correct_answers = getattr(st.session_state, 'last_correct_answer', [])
+                            
+                            st.error(f"❌ Wrong! {st.session_state.last_points} points")
+                            
+                            # Show what they got right/wrong
+                            st.write("**Answer Breakdown:**")
+                            
+                            user_set = set(user_answers) if isinstance(user_answers, list) else set()
+                            correct_set = set(correct_answers) if isinstance(correct_answers, list) else set()
+                            
+                            # Show correctly selected
+                            correctly_selected = user_set.intersection(correct_set)
+                            if correctly_selected:
+                                st.write("✅ **Correctly selected:** " + ", ".join(sorted(correctly_selected)))
+                            
+                            # Show incorrectly selected
+                            incorrectly_selected = user_set - correct_set
+                            if incorrectly_selected:
+                                st.write("❌ **Incorrectly selected:** " + ", ".join(sorted(incorrectly_selected)))
+                            
+                            # Show missed answers
+                            missed_answers = correct_set - user_set
+                            if missed_answers:
+                                st.write("⚠️ **Missed correct answers:** " + ", ".join(sorted(missed_answers)))
+                            
+                            st.write(f"**All correct answers:** {', '.join(sorted(correct_answers))}")
+                            
+                        else:
+                            # Regular single answer display
+                            user_answer_display = getattr(st.session_state, 'last_user_answer', 'No answer')
+                            if isinstance(user_answer_display, list):
+                                user_answer_display = ", ".join(user_answer_display)
+                            elif str(user_answer_display).strip() == "":
+                                user_answer_display = "No answer (time expired)"
+                            
+                            st.error(f"❌ Wrong! {st.session_state.last_points} points (correct answer: {st.session_state.last_correct_answer}, your answer: {user_answer_display})")                
+
                 # Show SCAC details
                 if hasattr(st.session_state, 'last_scac_info'):
                     with st.expander("📋 SCAC Details"):
@@ -710,9 +748,16 @@ def process_answer(user_answer, scacs_df):
     # Store results for display
     st.session_state.last_answer_correct = is_correct
     st.session_state.last_points = points
-    st.session_state.last_correct_answer = question['correct_answer']
-    st.session_state.last_user_answer = user_answer  # Store what user actually answered
+    st.session_state.last_question_type = question['type']  # Store question type
     
+    # Store correct answer(s) - handle both single and multiple answers
+    if question['type'] == 'multi_select':
+        st.session_state.last_correct_answer = question['correct_answers']  # List for multi-select
+    else:
+        st.session_state.last_correct_answer = question['correct_answer']  # Single answer
+    
+    st.session_state.last_user_answer = user_answer  # Store what user actually answered    
+ 
     # Store SCAC info for display
     scac_info = scacs_df[scacs_df['id'] == question['scac_id']].iloc[0]
     st.session_state.last_scac_info = {
