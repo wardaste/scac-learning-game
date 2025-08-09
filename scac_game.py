@@ -93,7 +93,7 @@ def save_score(player_name, score, correct, total):
 def get_leaderboard():
     conn = sqlite3.connect('scac_game.db')
     df = pd.read_sql_query("""
-        SELECT player_name, MAX(score) as best_score, 
+        SELECT player_name as Player, MAX(score) as best_score, 
                MAX(correct_answers) as best_correct,
                COUNT(*) as games_played,
                MAX(timestamp) as last_played
@@ -967,9 +967,8 @@ def admin_page():
                     with scac_col1:
                         st.write(f"{row['scac_code']} - {row['carrier_name']}")
                     with scac_col2:
-                        if st.button("Delete", key=f"del_user_{row['player_name']}"):
-                            delete_leaderboard_user(row['player_name'])
-                            delete_scac(row['id'])
+                        if st.button("Delete", key=f"del_user_{row['Player']}"):
+                            delete_leaderboard_user(row['Player'])
                             st.rerun()
             else:
                 st.info("No SCACs in database to delete.")
