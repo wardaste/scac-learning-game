@@ -807,7 +807,7 @@ def leaderboard_page():
     else:
         st.info("No scores yet. Play some games to see the leaderboard!")
 
-def get_similar_carriers(carrier_name, scacs_df, similarity_threshold=0.85):
+def get_similar_carriers(carrier_name, scacs_df, similarity_threshold=0.95):
     """Find carriers with similar names"""
     import difflib
     
