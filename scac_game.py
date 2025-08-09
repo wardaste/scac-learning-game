@@ -93,7 +93,7 @@ def save_score(player_name, score, correct, total):
 def get_leaderboard():
     conn = sqlite3.connect('scac_game.db')
     df = pd.read_sql_query("""
-        SELECT id, player_name, MAX(score) as best_score, 
+        SELECT player_name, MAX(score) as best_score, 
                MAX(correct_answers) as best_correct,
                COUNT(*) as games_played,
                MAX(timestamp) as last_played
