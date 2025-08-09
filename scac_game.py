@@ -290,7 +290,7 @@ def generate_question(scacs_df):
             
             if len(duplicate_details) > 0:
                 # Details are not unique, fall back to ship mode question
-                question_text = f"🌟 BONUS: Which carrier has the SCAC code {correct_scac['scac_code']} and handles {correct_scac['ship_mode']}?"
+                question_text = f"🌟 BONUS: Which carrier has the SCAC code {correct_scac['scac_code']} ?"
                 # Add warning in hint
                 hint_text = f"SCAC: {correct_scac['scac_code']}, Ship Mode: {correct_scac['ship_mode']} (Note: Multiple carriers have similar details)"
             else:
@@ -300,7 +300,7 @@ def generate_question(scacs_df):
                 hint_text = f"SCAC: {correct_scac['scac_code']}, Ship Mode: {correct_scac['ship_mode']}"
         else:
             # Use ship mode-based question for TL Imports/SP without details
-            question_text = f"🌟 BONUS: Which carrier has the SCAC code {correct_scac['scac_code']} and handles {correct_scac['ship_mode']}?"
+            question_text = f"🌟 BONUS: Which carrier has the SCAC code {correct_scac['scac_code']}?"
             hint_text = f"SCAC: {correct_scac['scac_code']}, Ship Mode: {correct_scac['ship_mode']}"
         
         # Get wrong answers - avoid carriers with same details
