@@ -586,23 +586,26 @@ def play_game_page():
                     with st.form(key=f"ms_form_{st.session_state.total_questions}"):
                         st.write("**Select ALL correct answers:**")
                         selected_answers = []
-                        
-                        for i, choice in enumerate(question['choices']):
-                            if st.checkbox(choice, key=f"ms_{choice}_{i}_{st.session_state.total_questions}"):
-                                selected_answers.append(choice)
-                        
-                        col_a, col_b = st.columns([1, 1])
-                        with col_a:
-                            submitted = st.form_submit_button("Submit Answers (Press Enter)")
-                        with col_b:
-                            hint_clicked = st.form_submit_button("Show Hint")
-                        
-                        if submitted:
-                            process_answer(selected_answers, scacs_df)
-                            st.rerun()
-                        elif hint_clicked:
-                            st.info(f"💡 Hint: {question['hint']}")
-            
+
+                # Remove duplicates for display while preserving original for scoring
+                unique_choices = list(dict.fromkeys(question['choices']))
+
+                for i, choice in enumerate(unique_choices):
+                    if st.checkbox(choice, key=f"ms_{choice}_{i}_{st.session_state.total_questions}"):
+                        selected_answers.append(choice)
+                
+                col_a, col_b = st.columns([1, 1])
+                with col_a:
+                    submitted = st.form_submit_button("Submit Answers (Press Enter)")
+                with col_b:
+                    hint_clicked = st.form_submit_button("Show Hint")
+
+                if submitted:
+                    process_answer(selected_answers, scacs_df)
+                    st.rerun()
+                elif hint_clicked:
+                    st.info(f"💡 Hint: {question['hint']}")
+
             else:
                 # Answer has been submitted, show results
 
