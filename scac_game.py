@@ -854,6 +854,7 @@ def admin_page():
     st.write("DEBUG: Tabs created")
 
     with tab1:
+        st.write("DEBUG: Tab1 started")
         st.subheader("Add New SCAC")
         
         # Use session state to control form clearing
@@ -883,6 +884,7 @@ def admin_page():
                     st.error("Please fill in SCAC Code, Carrier Name, and Ship Mode. Details are optional.")
     
     with tab2:
+        st.write("DEBUG: Tab2 started")
         st.subheader("All SCACs")
         scacs_df = get_all_scacs()
         if len(scacs_df) > 0:
@@ -891,6 +893,7 @@ def admin_page():
             st.info("No SCACs in database yet.")
     
     with tab3:
+        st.write("DEBUG: Tab3 started")
         st.subheader("Edit SCAC")
         scacs_df = get_all_scacs()
         
@@ -937,6 +940,7 @@ def admin_page():
             st.info("No SCACs available to edit. Add some SCACs first.")
     
     with tab4:
+        st.write("DEBUG: Tab4 started")
         st.subheader("Manage Data")
         st.warning("⚠️ Use with caution - these actions cannot be undone!")
     
@@ -964,6 +968,7 @@ def admin_page():
             st.info("Temporarily disabled - fixing column name issue")
             
     with tab5:
+        st.write("DEBUG: Tab5 started")
         st.subheader("Debug Queries")
         st.write("Debug tab is working!")
     
@@ -972,8 +977,10 @@ def admin_page():
         
         test_input = st.text_input("Test input:")
         if test_input:
-            st.write(f"You entered: {test_input}")    
+            st.write(f"You entered: {test_input}")
+
     with tab6:
+        st.write("DEBUG: Tab6 started")
         st.subheader("Import/Export Data")
         st.info("💾 Backup and restore your SCAC database and leaderboard data")
         
