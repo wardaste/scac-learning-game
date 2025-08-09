@@ -865,7 +865,7 @@ def admin_page():
     # Add admin notice
     st.info("🔒 **Admin Instructions:** Add and manage your SCAC data here. The data will only exist in the app, not in the public code.")
     
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(["Add New SCAC", "View All SCACs", "Edit SCAC", "Manage Data", "Debug Queries"])
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["Add New SCAC", "View All SCACs", "Edit SCAC", "Manage Data", "Debug Queries", "Import/Export"])
     
     with tab1:
         st.subheader("Add New SCAC")
@@ -1009,7 +1009,111 @@ def admin_page():
                     st.error(f"Query error: {str(e)}")
             else:
                 st.warning("Please enter a query to run.")    
+    with tab6:
+        st.subheader("Import/Export Data")
+        st.info("💾 Backup and restore your SCAC database and leaderboard data")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.write("### SCAC Database")
+            
+            # Export SCAC data
+            if st.button("📤 Export SCAC Data to CSV"):
+                scacs_df = get_all_scacs()
+                if len(scacs_df) > 0:
+                    csv = scacs_df.to_csv(index=False)
+                    st.download_button(
+                        label="Download SCAC Data",
+                        data=csv,
+                        file_name="scac_data.csv",
+                        mime="text/csv"
+                    )
+                else:
+                    st.warning("No SCAC data to export")
+            
+            # Import SCAC data
+            st.write("**Import SCAC Data:**")
+            uploaded_scac_file = st.file_uploader("Choose SCAC CSV file", type="csv", key="scac_upload")
+            if uploaded_scac_file is not None:
+                if st.button("Import SCAC Data", type="primary"):
+                    try:
+                        import_df = pd.read_csv(uploaded_scac_file)
+                        success_count = import_scac_data(import_df)
+                        st.success(f"Successfully imported {success_count} SCAC records!")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Error importing SCAC data: {str(e)}")
+        
+        with col2:
+            st.write("### Leaderboard Data")
+            
+            # Export leaderboard data
+            if st.button("📤 Export Leaderboard to CSV"):
+                scores_df = get_all_scores()
+                if len(scores_df) > 0:
+                    csv = scores_df.to_csv(index=False)
+                    st.download_button(
+                        label="Download Leaderboard Data",
+                        data=csv,
+                        file_name="leaderboard_data.csv",
+                        mime="text/csv"
+                    )
+                else:
+                    st.warning("No leaderboard data to export")
+            
+            # Import leaderboard data
+            st.write("**Import Leaderboard Data:**")
+            uploaded_scores_file = st.file_uploader("Choose Leaderboard CSV file", type="csv", key="scores_upload")
+            if uploaded_scores_file is not None:
+                if st.button("Import Leaderboard Data", type="primary"):
+                    try:
+                        import_df = pd.read_csv(uploaded_scores_file)
+                        success_count = import_scores_data(import_df)
+                        st.success(f"Successfully imported {success_count} score records!")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Error importing leaderboard data: {str(e)}")
 
+def get_all_scores():
+    conn = sqlite3.connect('scac_game.db')
+    df = pd.read_sql_query("SELECT * FROM scores", conn)
+    conn.close()
+    return df
+
+def import_scac_data(import_df):
+    conn = sqlite3.connect('scac_game.db')
+    c = conn.cursor()
+    success_count = 0
+    
+    for _, row in import_df.iterrows():
+        try:
+            c.execute("INSERT OR REPLACE INTO scacs (scac_code, carrier_name, ship_mode, details) VALUES (?, ?, ?, ?)",
+                     (row['scac_code'], row['carrier_name'], row['ship_mode'], row['details']))
+            success_count += 1
+        except Exception as e:
+            continue  # Skip problematic rows
+    
+    conn.commit()
+    conn.close()
+    return success_count
+
+def import_scores_data(import_df):
+    conn = sqlite3.connect('scac_game.db')
+    c = conn.cursor()
+    success_count = 0
+    
+    for _, row in import_df.iterrows():
+        try:
+            c.execute("INSERT INTO scores (player_name, score, correct_answers, total_questions, timestamp) VALUES (?, ?, ?, ?, ?)",
+                     (row['player_name'], row['score'], row['correct_answers'], row['total_questions'], row['timestamp']))
+            success_count += 1
+        except Exception as e:
+            continue  # Skip problematic rows
+    
+    conn.commit()
+    conn.close()
+    return success_count
 
 if __name__ == "__main__":
     main()
