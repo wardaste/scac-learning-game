@@ -949,7 +949,19 @@ def admin_page():
     
         with col1:
             st.write("### SCAC Management")
-            st.write("SCAC management temporarily disabled")
+            scacs_df = get_all_scacs()
+            if len(scacs_df) > 0:
+                st.write("**Delete Individual SCACs:**")
+                for _, row in scacs_df.iterrows():
+                    scac_col1, scac_col2 = st.columns([3, 1])
+                    with scac_col1:
+                        st.write(f"{row['scac_code']} - {row['carrier_name']}")
+                    with scac_col2:
+                        if st.button("Delete", key=f"del_scac_{row['id']}"):
+                            delete_scac(row['id'])
+                            st.rerun()
+            else:
+                st.info("No SCACs in database to delete.")
         
         with col2:
             st.write("### Leaderboard Management")
