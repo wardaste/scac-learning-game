@@ -238,14 +238,49 @@ def generate_question(scacs_df):
         }
     
     elif question_type == "ship_mode_from_scac":
-        return {
-            'type': 'text',
-            'is_bonus': False,
-            'question': f"What is the ship mode for {correct_scac['scac_code']} ({correct_scac['carrier_name']})?",
-            'correct_answer': correct_scac['ship_mode'].lower(),
-            'scac_id': correct_scac['id'],
-            'hint': "Think about the type of transportation service"
-        }
+        # Check for similar carrier names
+        similar_carriers = get_similar_carriers(correct_scac['carrier_name'], scacs_df)
+        
+        if len(similar_carriers) > 0:
+            # Similar carriers found - use "select all that apply" format
+            cleaned_name = clean_carrier_name(correct_scac['carrier_name'])
+            
+            # Get all ship modes for similar carriers (including the correct one)
+            all_similar = similar_carriers + [correct_scac]
+            all_ship_modes = [carrier['ship_mode'] for carrier in all_similar]
+            correct_ship_modes = list(set(all_ship_modes))  # Remove duplicates
+            
+            # Get some wrong ship modes from other carriers
+            other_ship_modes = scacs_df[~scacs_df['carrier_name'].str.contains(cleaned_name.split()[0], case=False, na=False)]['ship_mode'].unique().tolist()
+            wrong_ship_modes = random.sample(other_ship_modes, min(2, len(other_ship_modes)))
+            
+            # Combine all options
+            all_options = correct_ship_modes + wrong_ship_modes
+            random.shuffle(all_options)
+            
+            return {
+                'type': 'multi_select',
+                'is_bonus': False,
+                'question': f"What are ALL the ship modes that {cleaned_name} handles? (Select all that apply)",
+                'choices': all_options,
+                'correct_answers': correct_ship_modes,  # Multiple correct answers
+                'scac_id': correct_scac['id'],
+                'hint': f"Think about all the different services {cleaned_name} might offer"
+            }
+        else:
+            # No similar carriers - use regular single answer format
+            display_name = correct_scac['carrier_name']
+            if has_parenthetical_text(display_name):
+                display_name = clean_carrier_name(display_name)
+            
+            return {
+                'type': 'text',
+                'is_bonus': False,
+                'question': f"What is the ship mode for {correct_scac['scac_code']} ({display_name})?",
+                'correct_answer': correct_scac['ship_mode'].lower(),
+                'scac_id': correct_scac['id'],
+                'hint': "Think about the type of transportation service"
+            }
     
     elif question_type == "multiple_choice_carrier":
         # Get 3 wrong answers
@@ -546,6 +581,27 @@ def play_game_page():
                             st.rerun()
                         elif hint_clicked:
                             st.info(f"💡 Hint: {question['hint']}")
+                
+                elif question['type'] == 'multi_select':
+                    with st.form(key=f"ms_form_{st.session_state.total_questions}"):
+                        st.write("**Select ALL correct answers:**")
+                        selected_answers = []
+                        
+                        for choice in question['choices']:
+                            if st.checkbox(choice, key=f"ms_{choice}_{st.session_state.total_questions}"):
+                                selected_answers.append(choice)
+                        
+                        col_a, col_b = st.columns([1, 1])
+                        with col_a:
+                            submitted = st.form_submit_button("Submit Answers (Press Enter)")
+                        with col_b:
+                            hint_clicked = st.form_submit_button("Show Hint")
+                        
+                        if submitted:
+                            process_answer(selected_answers, scacs_df)
+                            st.rerun()
+                        elif hint_clicked:
+                            st.info(f"💡 Hint: {question['hint']}")
             
             else:
                 # Answer has been submitted, show results
@@ -633,6 +689,15 @@ def process_answer(user_answer, scacs_df):
             else:
                 is_correct = False
                 
+            
+    elif question['type'] == 'multi_select':
+        # Handle multiple correct answers
+        correct_answers = set(question['correct_answers'])
+        user_answers = set(user_answer) if isinstance(user_answer, list) else set()
+        
+        # Check if user selected exactly the right answers
+        is_correct = user_answers == correct_answers
+        
     else:  # multiple choice
         is_correct = user_answer == question['correct_answer']
     
@@ -682,6 +747,33 @@ def leaderboard_page():
         )
     else:
         st.info("No scores yet. Play some games to see the leaderboard!")
+
+def get_similar_carriers(carrier_name, scacs_df, similarity_threshold=0.7):
+    """Find carriers with similar names"""
+    import difflib
+    
+    similar_carriers = []
+    for _, row in scacs_df.iterrows():
+        if row['carrier_name'] != carrier_name:
+            # Calculate similarity ratio
+            similarity = difflib.SequenceMatcher(None, carrier_name.lower(), row['carrier_name'].lower()).ratio()
+            if similarity >= similarity_threshold:
+                similar_carriers.append(row)
+    
+    return similar_carriers
+
+def clean_carrier_name(carrier_name):
+    """Remove text in parentheses from carrier name"""
+    import re
+    # Remove anything in parentheses and extra spaces
+    cleaned = re.sub(r'\([^)]*\)', '', carrier_name).strip()
+    # Remove extra spaces
+    cleaned = ' '.join(cleaned.split())
+    return cleaned
+
+def has_parenthetical_text(carrier_name):
+    """Check if carrier name contains parentheses"""
+    return '(' in carrier_name and ')' in carrier_name
 
 def admin_page():
     st.header("⚙️ Admin Panel")
