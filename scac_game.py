@@ -843,13 +843,16 @@ def has_parenthetical_text(carrier_name):
     return '(' in carrier_name and ')' in carrier_name
 
 def admin_page():
+    st.write("DEBUG: Admin page started")
     st.header("⚙️ Admin Panel")
     
     # Add admin notice
     st.info("🔒 **Admin Instructions:** Add and manage your SCAC data here. The data will only exist in the app, not in the public code.")
     
+    st.write("DEBUG: About to create tabs")
     tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["Add New SCAC", "View All SCACs", "Edit SCAC", "Manage Data", "Debug Queries", "Import/Export"])
-    
+    st.write("DEBUG: Tabs created")
+
     with tab1:
         st.subheader("Add New SCAC")
         
