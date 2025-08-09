@@ -698,34 +698,72 @@ def process_answer(user_answer, scacs_df):
         user_input = user_answer.lower().strip()
         correct_answer = question['correct_answer'].lower().strip()
         
-        # For text questions, check if user answer contains key parts or vice versa
+        # For text questions, check multiple validation methods
         if len(user_input) == 0:
             is_correct = False
         elif user_input == correct_answer:
             # Exact match
             is_correct = True
-        elif len(user_input) >= 3 and user_input in correct_answer:
-            # User answer is contained in correct answer
-            is_correct = True
-        elif len(correct_answer) >= 3 and correct_answer in user_input:
-            # Correct answer is contained in user answer
-            is_correct = True
         else:
-            # Check for partial word matches
-            user_words = set(user_input.split())
-            correct_words = set(correct_answer.split())
+            # Try multiple validation approaches
+            is_correct = False
             
-            # Remove common words that don't matter
-            common_words = {'the', 'and', 'or', 'of', 'in', 'to', 'a', 'an', 'is', 'are', 'was', 'were'}
-            user_words = user_words - common_words
-            correct_words = correct_words - common_words
+            # Method 1: Remove spaces, hyphens, and check similarity
+            user_clean = user_input.replace(' ', '').replace('-', '').replace('_', '')
+            correct_clean = correct_answer.replace(' ', '').replace('-', '').replace('_', '')
             
-            # If user got at least 50% of the important words right
-            if len(correct_words) > 0:
-                overlap = len(user_words.intersection(correct_words))
-                is_correct = overlap >= len(correct_words) * 0.5
-            else:
-                is_correct = False
+            if user_clean == correct_clean:
+                is_correct = True
+            elif len(user_clean) >= 3 and user_clean in correct_clean:
+                is_correct = True
+            elif len(correct_clean) >= 3 and correct_clean in user_clean:
+                is_correct = True
+            
+            # Method 2: Check if user input matches significant parts
+            if not is_correct and len(user_input) >= 3:
+                if user_input in correct_answer or correct_answer in user_input:
+                    is_correct = True
+            
+            # Method 3: Word-based matching with enhanced logic
+            if not is_correct:
+                user_words = set(user_input.split())
+                correct_words = set(correct_answer.split())
+                
+                # Remove common words that don't matter
+                common_words = {'the', 'and', 'or', 'of', 'in', 'to', 'a', 'an', 'is', 'are', 'was', 'were', 'inc', 'llc', 'corp', 'company', 'co'}
+                user_words_clean = user_words - common_words
+                correct_words_clean = correct_words - common_words
+                
+                # Check for partial word matches (handles "tforce" vs "t-force")
+                for user_word in user_words_clean:
+                    for correct_word in correct_words_clean:
+                        # Remove hyphens and spaces for comparison
+                        user_word_clean = user_word.replace('-', '').replace('_', '')
+                        correct_word_clean = correct_word.replace('-', '').replace('_', '')
+                        
+                        if user_word_clean == correct_word_clean:
+                            is_correct = True
+                            break
+                        elif len(user_word_clean) >= 4 and user_word_clean in correct_word_clean:
+                            is_correct = True
+                            break
+                        elif len(correct_word_clean) >= 4 and correct_word_clean in user_word_clean:
+                            is_correct = True
+                            break
+                    if is_correct:
+                        break
+                
+                # If still not correct, check overall word overlap
+                if not is_correct and len(correct_words_clean) > 0:
+                    overlap = len(user_words_clean.intersection(correct_words_clean))
+                    is_correct = overlap >= len(correct_words_clean) * 0.6  # Increased threshold
+            
+            # Method 4: Fuzzy string matching for close matches
+            if not is_correct:
+                import difflib
+                similarity = difflib.SequenceMatcher(None, user_input, correct_answer).ratio()
+                if similarity >= 0.8:  # 80% similarity threshold
+                    is_correct = True
                 
             
     elif question['type'] == 'multi_select':
