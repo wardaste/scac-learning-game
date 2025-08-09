@@ -970,14 +970,31 @@ def admin_page():
     with tab5:
         st.write("DEBUG: Tab5 started")
         st.subheader("Debug Queries")
-        st.write("Debug tab is working!")
+        st.info("Run custom queries to debug issues.")
     
-        if st.button("Test Button"):
-            st.write("Button clicked!")
-        
-        test_input = st.text_input("Test input:")
-        if test_input:
-            st.write(f"You entered: {test_input}")
+        st.write("**Database Tables:**")
+        conn = sqlite3.connect('scac_game.db')
+        cursor = conn.cursor()
+        cursor.execute("PRAGMA table_info(scores)")
+        columns = cursor.fetchall()
+        conn.close()
+        st.write("Scores table columns:", columns)
+    
+        query_code = st.text_area("Enter your query:", 
+                             placeholder="Example: scacs_df[scacs_df['carrier_name'].str.contains('RXO', case=False, na=False)][['carrier_name', 'ship_mode']]",
+                             height=100)
+
+        if st.button("Run Query"):
+            if query_code.strip():
+                try:
+                    scacs_df = get_all_scacs()
+                    result = eval(query_code)
+                    st.write("**Query Result:**")
+                    st.write(result)
+                except Exception as e:
+                    st.error(f"Query error: {str(e)}")
+            else:
+                st.warning("Please enter a query to run.")
 
     with tab6:
         st.write("DEBUG: Tab6 started")
