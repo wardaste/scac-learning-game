@@ -167,49 +167,21 @@ def generate_question(scacs_df):
         "bonus_multiple_choice"
     ]
     
-    # Decide if this should be a bonus question based on ship mode
-    ship_mode = available_scacs.sample(1).iloc[0]['ship_mode'].strip()
-    
-    if ship_mode == "TL Imports" or ship_mode == "SP (small parcel)":
-        # Always bonus for TL Imports and SP
-        is_bonus = True
-        # Make sure we have SCACs with details available
-        if len(scacs_with_details) == 0:
-            is_bonus = False  # Fall back to regular if no details available
-    elif ship_mode == "IM (intermodal)":
-        # 50% chance for Intermodal
-        is_bonus = len(scacs_with_details) > 0 and random.random() < 0.5
-    else:
-        # All other ship modes: 30% chance (original logic)
-        is_bonus = len(scacs_with_details) > 0 and random.random() < 0.3
-    
     # First select a SCAC, then decide question type based on ship mode
     correct_scac = available_scacs.sample(1).iloc[0]
     ship_mode = correct_scac['ship_mode'].strip()
-    
+
     # Determine if this should be a bonus question based on ship mode
-    if ship_mode == "TL Imports" or ship_mode == "SP (small parcel)":
-        # Always bonus for TL Imports and SP
+    if ship_mode == "TL Imports" or ship_mode == "SP (small parcel)" or ship_mode == "IM (intermodal)":
+        # Always bonus for TL Imports, SP, and IM (intermodal)
         is_bonus = True
-        # Check if this SCAC has details for bonus questions
-        has_details = (pd.notna(correct_scac['details']) and 
-                      correct_scac['details'].strip() != '' and 
-                      correct_scac['details'] != 'No additional details provided')
-        if not has_details:
-            is_bonus = False  # Fall back to regular if no details
-    elif ship_mode == "IM (intermodal)":
-        # 50% chance for Intermodal
-        has_details = (pd.notna(correct_scac['details']) and 
-                      correct_scac['details'].strip() != '' and 
-                      correct_scac['details'] != 'No additional details provided')
-        is_bonus = has_details and random.random() < 0.5
     else:
-        # All other ship modes: 30% chance
+        # All other ship modes: lower chance (15% instead of 30%)
         has_details = (pd.notna(correct_scac['details']) and 
                       correct_scac['details'].strip() != '' and 
                       correct_scac['details'] != 'No additional details provided')
-        is_bonus = has_details and random.random() < 0.3
-    
+        is_bonus = has_details and random.random() < 0.15
+
     # Select question type based on bonus status
     if is_bonus:
         question_type = random.choice(bonus_question_types)
