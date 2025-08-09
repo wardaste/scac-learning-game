@@ -965,7 +965,7 @@ def admin_page():
                 for _, row in scacs_df.iterrows():
                     scac_col1, scac_col2 = st.columns([3, 1])
                     with scac_col1:
-                        t.write(f"{row['scac_code']} - {row['carrier_name']}")
+                        st.write(f"{row['scac_code']} - {row['carrier_name']}")
                     with scac_col2:
                         if st.button("Delete", key=f"del_user_{row['player_name']}"):
                             delete_leaderboard_user(row['player_name'])
