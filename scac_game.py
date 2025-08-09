@@ -28,7 +28,7 @@ def init_database():
     # Player scores table
     c.execute('''CREATE TABLE IF NOT EXISTS scores
                  (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                  player_name TEXT,
+                  Player TEXT,
                   score INTEGER,
                   correct_answers INTEGER,
                   total_questions INTEGER,
@@ -82,46 +82,46 @@ def update_scac(scac_id, scac_code, carrier_name, ship_mode, details):
     finally:
         conn.close()
 
-def save_score(player_name, score, correct, total):
+def save_score(Player, score, correct, total):
     conn = sqlite3.connect('scac_game.db')
     c = conn.cursor()
-    c.execute("INSERT INTO scores (player_name, score, correct_answers, total_questions, timestamp) VALUES (?, ?, ?, ?, ?)",
-             (player_name, score, correct, total, datetime.now()))
+    c.execute("INSERT INTO scores (Player, score, correct_answers, total_questions, timestamp) VALUES (?, ?, ?, ?, ?)",
+             (Player, score, correct, total, datetime.now()))
     conn.commit()
     conn.close()
 
 def get_leaderboard():
     conn = sqlite3.connect('scac_game.db')
     df = pd.read_sql_query("""
-        SELECT player_name, MAX(score) as best_score, 
+        SELECT Player, MAX(score) as best_score, 
                MAX(correct_answers) as best_correct,
                COUNT(*) as games_played,
                MAX(timestamp) as last_played
         FROM scores 
-        GROUP BY player_name 
+        GROUP BY Player 
         ORDER BY best_score DESC
     """, conn)
     conn.close()
     return df
 
-def delete_leaderboard_user(player_name):
+def delete_leaderboard_user(Player):
     conn = sqlite3.connect('scac_game.db')
     c = conn.cursor()
-    c.execute("DELETE FROM scores WHERE player_name = ?", (player_name,))
+    c.execute("DELETE FROM scores WHERE Player = ?", (Player,))
     conn.commit()
     conn.close()
 
 def get_enhanced_leaderboard():
     conn = sqlite3.connect('scac_game.db')
     df = pd.read_sql_query("""
-        SELECT player_name, 
+        SELECT Player, 
                MAX(score) as best_score, 
                MAX(correct_answers) as best_correct,
                COUNT(*) as games_played,
                ROUND(AVG(CAST(correct_answers AS FLOAT) / total_questions * 100), 1) as accuracy_pct,
                MAX(timestamp) as last_played
         FROM scores 
-        GROUP BY player_name 
+        GROUP BY Player 
         ORDER BY best_score DESC
     """, conn)
     conn.close()
@@ -129,15 +129,15 @@ def get_enhanced_leaderboard():
     # Add time in lead for top player
     if len(df) > 0:
         df['time_in_lead'] = ''
-        top_player = df.iloc[0]['player_name']
+        top_player = df.iloc[0]['Player']
         
         # Get when this player first achieved the top score
         conn = sqlite3.connect('scac_game.db')
         first_top_score = pd.read_sql_query("""
             SELECT MIN(timestamp) as first_top
             FROM scores 
-            WHERE player_name = ? AND score = (
-                SELECT MAX(score) FROM scores WHERE player_name = ?
+            WHERE Player = ? AND score = (
+                SELECT MAX(score) FROM scores WHERE Player = ?
             )
         """, conn, params=[top_player, top_player])
         conn.close()
@@ -444,16 +444,16 @@ def play_game_page():
         st.write("Test your knowledge of SCACs, carriers, and ship modes!")
         
         # Player name input
-        if 'player_name' not in st.session_state:
-            st.session_state.player_name = ""
+        if 'Player' not in st.session_state:
+            st.session_state.Player = ""
         
-        player_name = st.text_input("Enter your name:", value=st.session_state.player_name)
-        st.session_state.player_name = player_name
+        Player = st.text_input("Enter your name:", value=st.session_state.Player)
+        st.session_state.Player = Player
     
     if not st.session_state.game_active:
         col1, col2 = st.columns([1, 3])
         with col1:
-            if st.button("🎮 Start Game", disabled=not player_name):
+            if st.button("🎮 Start Game", disabled=not Player):
                 # Reset everything for new game
                 st.session_state.game_active = True
                 st.session_state.score = 0
@@ -480,7 +480,7 @@ def play_game_page():
             st.write(f"**Correct Answers:** {st.session_state.correct_answers}/{st.session_state.total_questions}")
             
             if st.button("Save Score & Play Again"):
-                save_score(st.session_state.player_name, st.session_state.score, 
+                save_score(st.session_state.Player, st.session_state.score, 
                           st.session_state.correct_answers, st.session_state.total_questions)
                 st.session_state.game_active = False
                 # Reset the used questions list for new game
@@ -516,7 +516,7 @@ def play_game_page():
                 text-align: center;
                 color: #ffffff;
                 box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
-                <div style="font-weight: bold; margin-bottom: 5px;">👤 {st.session_state.player_name}</div>
+                <div style="font-weight: bold; margin-bottom: 5px;">👤 {st.session_state.Player}</div>
                 <div>🏆 Score: {st.session_state.score}</div>
                 <div>✅ Correct: {st.session_state.correct_answers}</div>
                 <div>📊 Total: {st.session_state.total_questions}</div>
@@ -819,7 +819,7 @@ def leaderboard_page():
         st.dataframe(
             leaderboard,
             column_config={
-                "player_name": "Player",
+                "Player": "Player",
                 "best_score": "Best Score",
                 "best_correct": "Best Correct",
                 "games_played": "Games Played",
@@ -967,8 +967,8 @@ def admin_page():
                     with scac_col1:
                         st.write(f"{row['scac_code']} - {row['carrier_name']}")
                     with scac_col2:
-                        if st.button("Delete", key=f"del_user_{row['player_name']}"):
-                            delete_leaderboard_user(row['player_name'])
+                        if st.button("Delete", key=f"del_user_{row['Player']}"):
+                            delete_leaderboard_user(row['Player'])
                             delete_scac(row['id'])
                             st.rerun()
             else:
