@@ -122,6 +122,26 @@ def initialize_game_state():
         st.session_state.used_questions = []
 
 def generate_question(scacs_df):
+    # DEBUG: Print what we're working with
+    print(f"DEBUG generate_question: Total SCACs: {len(scacs_df)}")
+    print(f"DEBUG generate_question: Used questions: {st.session_state.used_questions}")
+    
+    available_scacs = scacs_df[~scacs_df['id'].isin(st.session_state.used_questions)]
+    print(f"DEBUG generate_question: Available SCACs: {len(available_scacs)}")
+    
+    if len(available_scacs) == 0:
+        print("DEBUG generate_question: No available SCACs - returning None")
+        return None
+    
+    # Separate SCACs with meaningful details for bonus questions
+    scacs_with_details = available_scacs[
+        (available_scacs['details'].notna()) & 
+        (available_scacs['details'].str.strip() != '') & 
+        (available_scacs['details'] != 'No additional details provided')
+    ]
+    print(f"DEBUG generate_question: SCACs with details: {len(scacs_with_details)}")
+    
+    # Rest of your function...
     available_scacs = scacs_df[~scacs_df['id'].isin(st.session_state.used_questions)]
     
     if len(available_scacs) == 0:
@@ -148,7 +168,7 @@ def generate_question(scacs_df):
     ]
     
     # Decide if this should be a bonus question (30% chance if details available)
-    is_bonus = len(scacs_with_details) > 0 and random.random() < 0.3
+    is_bonus = False #len(scacs_with_details) > 0 and random.random() < 0.3
     
     if is_bonus:
         question_type = random.choice(bonus_question_types)
@@ -481,18 +501,26 @@ def play_game_page():
                 
                 # Next question button
                 st.write("")  # Add some space
-                if st.button("Next Question ➡️", use_container_width=True):
-                    # Reset for next question
-                    st.session_state.current_question = generate_question(scacs_df)
-                    if st.session_state.current_question:
-                        st.session_state.question_start_time = time.time()
-                        st.session_state.answer_submitted = False
-                        # Clear the last answer info
-                        if hasattr(st.session_state, 'last_answer_correct'):
-                            delattr(st.session_state, 'last_answer_correct')
-                        if hasattr(st.session_state, 'last_scac_info'):
-                            delattr(st.session_state, 'last_scac_info')
-                    st.rerun()
+            if st.button("Next Question ➡️", use_container_width=True):
+                st.write(f"DEBUG: Before generating new question, used_questions: {st.session_state.used_questions}")
+                
+                # Reset for next question
+                st.session_state.current_question = generate_question(scacs_df)
+                
+                st.write(f"DEBUG: After generate_question, current_question is None: {st.session_state.current_question is None}")
+                
+                if st.session_state.current_question:
+                    st.session_state.question_start_time = time.time()
+                    st.session_state.answer_submitted = False
+                    # Clear the last answer info
+                    if hasattr(st.session_state, 'last_answer_correct'):
+                        delattr(st.session_state, 'last_answer_correct')
+                    if hasattr(st.session_state, 'last_scac_info'):
+                        delattr(st.session_state, 'last_scac_info')
+                else:
+                    st.error("DEBUG: Failed to generate next question!")
+                
+                st.rerun()
 
 def process_answer(user_answer, scacs_df):
     question = st.session_state.current_question
