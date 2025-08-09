@@ -172,7 +172,7 @@ def generate_question(scacs_df):
     ship_mode = correct_scac['ship_mode'].strip()
 
     # Determine if this should be a bonus question based on ship mode
-    if ship_mode == "TL Imports" or ship_mode == "SP (small parcel)" or ship_mode == "IM (intermodal)":
+    if ship_mode == "TL Imports" or ship_mode == "SP (Small Parcel)" or ship_mode == "IM (intermodal)":
         # Always bonus for TL Imports, SP, and IM (intermodal)
         is_bonus = True
     else:
