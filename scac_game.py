@@ -813,25 +813,7 @@ def process_answer(user_answer, scacs_df):
 
 def leaderboard_page():
     st.header("🏆 Leaderboard")
-    
-    leaderboard = get_enhanced_leaderboard()
-    if len(leaderboard) > 0:
-        st.dataframe(
-            leaderboard,
-            column_config={
-                "player_name": "player_name",
-                "best_score": "Best Score",
-                "best_correct": "Best Correct",
-                "games_played": "Games Played",
-                "accuracy_pct": "Accuracy %",
-                "time_in_lead": "Time in Lead",
-                "last_played": "Last Played"
-            },
-            hide_index=True
-        )
-    else:
-        st.info("No scores yet. Play some games to see the leaderboard!")
-
+    st.info("Leaderboard temporarily disabled - fixing database column issues")
 def get_similar_carriers(carrier_name, scacs_df, similarity_threshold=0.95):
     """Find carriers with similar names"""
     import difflib
