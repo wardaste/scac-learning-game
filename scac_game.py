@@ -976,19 +976,7 @@ def admin_page():
     
         with col2:
             st.write("### Leaderboard Management")
-            leaderboard_df = get_leaderboard()
-            if len(leaderboard_df) > 0:
-                st.write("**Delete Individual Users:**")
-                for _, row in leaderboard_df.iterrows():
-                    user_col1, user_col2 = st.columns([3, 1])
-                    with user_col1:
-                        st.write(f"{row['name']} - Score: {row['score']}")
-                    with user_col2:
-                        if st.button("Delete", key=f"del_user_{row['id']}"):
-                            delete_leaderboard_user(row['id'])
-                            st.rerun()
-            else:
-                st.info("No users in leaderboard to delete.")
+            st.info("Temporarily disabled - fixing column name issue")
             
     with tab5:
         st.subheader("Debug Queries")
