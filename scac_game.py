@@ -417,7 +417,7 @@ def display_sand_timer(elapsed_time):
 # Main app
 def main():
     init_database()
-    initialize_game_state()
+    # initialize_game_state()  # Temporarily disabled
     
     st.title("🚚 SCAC Learning Game")
     
@@ -426,7 +426,8 @@ def main():
     page = st.sidebar.selectbox("Choose a page:", ["Play Game", "Leaderboard", "Admin Panel"])
     
     if page == "Play Game":
-        play_game_page()
+        st.info("Play Game temporarily disabled - fixing database issues")
+        # play_game_page()
     elif page == "Leaderboard":
         leaderboard_page()
     elif page == "Admin Panel":
