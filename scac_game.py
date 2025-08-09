@@ -939,33 +939,21 @@ def admin_page():
         else:
             st.info("No SCACs available to edit. Add some SCACs first.")
     
-    #with tab4:
-        #st.write("DEBUG: Tab4 started")
-        #st.subheader("Manage Data")
-        #st.warning("⚠️ Use with caution - these actions cannot be undone!")
+    with tab4:
+        st.write("DEBUG: Tab4 started")
+        st.subheader("Manage Data")
+        st.warning("⚠️ Use with caution - these actions cannot be undone!")
     
         # Create two columns for SCAC and Leaderboard management
-        #col1, col2 = st.columns(2)
+        col1, col2 = st.columns(2)
     
-        #with col1:
-            #st.write("### SCAC Management")
-            #scacs_df = get_all_scacs()
-            #if len(scacs_df) > 0:
-                #st.write("**Delete Individual SCACs:**")
-                #for _, row in scacs_df.iterrows():
-                    #scac_col1, scac_col2 = st.columns([3, 1])
-                    #with scac_col1:
-                        #st.write(f"{row['scac_code']} - {row['carrier_name']}")
-                    #with scac_col2:
-                        #if st.button("Delete", key=f"del_user_{row['Player']}"):
-                            #delete_leaderboard_user(row['Player'])
-                            #st.rerun()
-            #else:
-                #st.info("No SCACs in database to delete.")
-
-#        with col2:
-#            st.write("### Leaderboard Management")
-#            st.info("Temporarily disabled - fixing column name issue")
+        with col1:
+            st.write("### SCAC Management")
+            st.write("SCAC management temporarily disabled")
+        
+        with col2:
+            st.write("### Leaderboard Management")
+            st.info("Temporarily disabled - fixing database issues")
             
     with tab5:
         st.write("DEBUG: Tab5 started")
