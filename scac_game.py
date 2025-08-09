@@ -587,8 +587,8 @@ def play_game_page():
                         st.write("**Select ALL correct answers:**")
                         selected_answers = []
                         
-                        for choice in question['choices']:
-                            if st.checkbox(choice, key=f"ms_{choice}_{st.session_state.total_questions}"):
+                        for i, choice in enumerate(question['choices']):
+                            if st.checkbox(choice, key=f"ms_{choice}_{i}_{st.session_state.total_questions}"):
                                 selected_answers.append(choice)
                         
                         col_a, col_b = st.columns([1, 1])
