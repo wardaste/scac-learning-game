@@ -167,15 +167,54 @@ def generate_question(scacs_df):
         "bonus_multiple_choice"
     ]
     
-    # Decide if this should be a bonus question (30% chance if details available)
-    is_bonus = False #len(scacs_with_details) > 0 and random.random() < 0.3
+    # Decide if this should be a bonus question based on ship mode
+    ship_mode = available_scacs.sample(1).iloc[0]['ship_mode'].strip()
     
+    if ship_mode == "TL Imports" or ship_mode == "SP (small parcel)":
+        # Always bonus for TL Imports and SP
+        is_bonus = True
+        # Make sure we have SCACs with details available
+        if len(scacs_with_details) == 0:
+            is_bonus = False  # Fall back to regular if no details available
+    elif ship_mode == "IM (intermodal)":
+        # 50% chance for Intermodal
+        is_bonus = len(scacs_with_details) > 0 and random.random() < 0.5
+    else:
+        # All other ship modes: 30% chance (original logic)
+        is_bonus = len(scacs_with_details) > 0 and random.random() < 0.3
+    
+    # First select a SCAC, then decide question type based on ship mode
+    correct_scac = available_scacs.sample(1).iloc[0]
+    ship_mode = correct_scac['ship_mode'].strip()
+    
+    # Determine if this should be a bonus question based on ship mode
+    if ship_mode == "TL Imports" or ship_mode == "SP (small parcel)":
+        # Always bonus for TL Imports and SP
+        is_bonus = True
+        # Check if this SCAC has details for bonus questions
+        has_details = (pd.notna(correct_scac['details']) and 
+                      correct_scac['details'].strip() != '' and 
+                      correct_scac['details'] != 'No additional details provided')
+        if not has_details:
+            is_bonus = False  # Fall back to regular if no details
+    elif ship_mode == "IM (intermodal)":
+        # 50% chance for Intermodal
+        has_details = (pd.notna(correct_scac['details']) and 
+                      correct_scac['details'].strip() != '' and 
+                      correct_scac['details'] != 'No additional details provided')
+        is_bonus = has_details and random.random() < 0.5
+    else:
+        # All other ship modes: 30% chance
+        has_details = (pd.notna(correct_scac['details']) and 
+                      correct_scac['details'].strip() != '' and 
+                      correct_scac['details'] != 'No additional details provided')
+        is_bonus = has_details and random.random() < 0.3
+    
+    # Select question type based on bonus status
     if is_bonus:
         question_type = random.choice(bonus_question_types)
-        correct_scac = scacs_with_details.sample(1).iloc[0]
     else:
         question_type = random.choice(regular_question_types)
-        correct_scac = available_scacs.sample(1).iloc[0]
     
     # Regular questions (existing code)
     if question_type == "carrier_from_scac":
@@ -228,32 +267,63 @@ def generate_question(scacs_df):
         }
     
     # BONUS QUESTIONS (multiple choice only)
-    elif question_type in ["details_from_scac", "scac_from_details", "multiple_choice_details"]:
-        # Get other SCACs with details for wrong answers
-        other_scacs_with_details = scacs_with_details[scacs_with_details['id'] != correct_scac['id']]
+    elif question_type == "bonus_multiple_choice":
+        # Check if this SCAC has meaningful details
+        has_meaningful_details = (pd.notna(correct_scac['details']) and 
+                                correct_scac['details'].strip() != '' and 
+                                correct_scac['details'] != 'No additional details provided')
         
-        if len(other_scacs_with_details) >= 3:
-            wrong_scacs = other_scacs_with_details.sample(3)
-            wrong_answers = wrong_scacs['carrier_name'].tolist()
+        if has_meaningful_details:
+            # Check for duplicate details before using details-based question
+            current_details = correct_scac['details'].strip().lower()
+            duplicate_details = scacs_df[
+                (scacs_df['id'] != correct_scac['id']) & 
+                (scacs_df['details'].str.strip().str.lower() == current_details)
+            ]
+            
+            if len(duplicate_details) > 0:
+                # Details are not unique, fall back to ship mode question
+                question_text = f"🌟 BONUS: Which carrier has the SCAC code {correct_scac['scac_code']} and handles {correct_scac['ship_mode']}?"
+                # Add warning in hint
+                hint_text = f"SCAC: {correct_scac['scac_code']}, Ship Mode: {correct_scac['ship_mode']} (Note: Multiple carriers have similar details)"
+            else:
+                # Details are unique, use details-based question
+                details_clue = correct_scac['details'][:200] + "..." if len(correct_scac['details']) > 200 else correct_scac['details']
+                question_text = f"🌟 BONUS: Which carrier is associated with this service/detail: '{details_clue}'?"
+                hint_text = f"SCAC: {correct_scac['scac_code']}, Ship Mode: {correct_scac['ship_mode']}"
         else:
-            # Fall back to any other carriers if not enough with details
+            # Use ship mode-based question for TL Imports/SP without details
+            question_text = f"🌟 BONUS: Which carrier has the SCAC code {correct_scac['scac_code']} and handles {correct_scac['ship_mode']}?"
+            hint_text = f"SCAC: {correct_scac['scac_code']}, Ship Mode: {correct_scac['ship_mode']}"
+        
+        # Get wrong answers - avoid carriers with same details
+        if has_meaningful_details:
+            # Exclude carriers with identical details from wrong answers
+            current_details = correct_scac['details'].strip().lower()
+            other_carriers = scacs_df[
+                (scacs_df['id'] != correct_scac['id']) & 
+                (scacs_df['details'].str.strip().str.lower() != current_details)
+            ]['carrier_name'].tolist()
+            
+            # If not enough unique carriers, fall back to all others
+            if len(other_carriers) < 3:
+                other_carriers = scacs_df[scacs_df['id'] != correct_scac['id']]['carrier_name'].tolist()
+        else:
             other_carriers = scacs_df[scacs_df['id'] != correct_scac['id']]['carrier_name'].tolist()
-            wrong_answers = random.sample(other_carriers, min(3, len(other_carriers)))
+        
+        wrong_answers = random.sample(other_carriers, min(3, len(other_carriers)))
         
         choices = [correct_scac['carrier_name']] + wrong_answers
         random.shuffle(choices)
         
-        # Create a details clue (truncate if too long)
-        details_clue = correct_scac['details'][:200] + "..." if len(correct_scac['details']) > 200 else correct_scac['details']
-        
         return {
             'type': 'multiple_choice',
             'is_bonus': True,
-            'question': f"🌟 BONUS: Which carrier is associated with this service/detail: '{details_clue}'?",
+            'question': question_text,
             'choices': choices,
             'correct_answer': correct_scac['carrier_name'],
             'scac_id': correct_scac['id'],
-            'hint': f"SCAC: {correct_scac['scac_code']}, Ship Mode: {correct_scac['ship_mode']}"
+            'hint': hint_text
         }
 
 def calculate_score(time_taken, is_correct, is_bonus=False):
