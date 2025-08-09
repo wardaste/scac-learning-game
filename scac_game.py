@@ -121,25 +121,13 @@ def initialize_game_state():
     if 'used_questions' not in st.session_state:
         st.session_state.used_questions = []
 
-def generate_question(scacs_df):
-    # DEBUG: Print what we're working with
-    print(f"DEBUG generate_question: Total SCACs: {len(scacs_df)}")
-    print(f"DEBUG generate_question: Used questions: {st.session_state.used_questions}")
-    
-    available_scacs = scacs_df[~scacs_df['id'].isin(st.session_state.used_questions)]
-    print(f"DEBUG generate_question: Available SCACs: {len(available_scacs)}")
-    
-    if len(available_scacs) == 0:
-        print("DEBUG generate_question: No available SCACs - returning None")
-        return None
-    
+def generate_question(scacs_df):    
     # Separate SCACs with meaningful details for bonus questions
     scacs_with_details = available_scacs[
         (available_scacs['details'].notna()) & 
         (available_scacs['details'].str.strip() != '') & 
         (available_scacs['details'] != 'No additional details provided')
     ]
-    print(f"DEBUG generate_question: SCACs with details: {len(scacs_with_details)}")
     
     # Rest of your function...
     available_scacs = scacs_df[~scacs_df['id'].isin(st.session_state.used_questions)]
@@ -425,12 +413,6 @@ def play_game_page():
                 st.session_state.current_question = generate_question(scacs_df)
                 st.session_state.question_start_time = time.time()
                 
-                # Debug: Check if question was generated
-                if st.session_state.current_question is None:
-                    st.error("DEBUG: Failed to generate first question!")
-                else:
-                    st.success("DEBUG: First question generated successfully!")
-                
                 st.rerun()
         
         with col2:
@@ -488,13 +470,6 @@ def play_game_page():
                 <div>⏰ {timer_display}</div>
             </div>
             """, unsafe_allow_html=True)
-        # DEBUG INFO (temporary - remove later)
-        st.write("=== DEBUG INFO ===")
-        st.write(f"Game active: {st.session_state.game_active}")
-        st.write(f"Current question exists: {st.session_state.current_question is not None}")
-        st.write(f"Total SCACs in database: {len(scacs_df)}")
-        st.write(f"Used questions: {len(st.session_state.used_questions)}")
-        st.write(f"Used question IDs: {st.session_state.used_questions}")
         
         # Check SCACs with details for bonus questions
         scacs_with_details = scacs_df[
@@ -502,8 +477,7 @@ def play_game_page():
             (scacs_df['details'].str.strip() != '') & 
             (scacs_df['details'] != 'No additional details provided')
         ]
-        st.write(f"SCACs with details for bonus: {len(scacs_with_details)}")
-        st.write("=== END DEBUG ===")        
+    
         with col1:
             # Display question
             question = st.session_state.current_question
@@ -642,13 +616,9 @@ def play_game_page():
                 # Next question button
                 st.write("")  # Add some space
             if st.button("Next Question ➡️", use_container_width=True):
-                st.write(f"DEBUG: Before generating new question, used_questions: {st.session_state.used_questions}")
                 
                 # Reset for next question
-                st.session_state.current_question = generate_question(scacs_df)
-                
-                st.write(f"DEBUG: After generate_question, current_question is None: {st.session_state.current_question is None}")
-                
+                st.session_state.current_question = generate_question(scacs_df)               
                 if st.session_state.current_question:
                     st.session_state.question_start_time = time.time()
                     st.session_state.answer_submitted = False
