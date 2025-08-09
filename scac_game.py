@@ -860,7 +860,36 @@ def has_parenthetical_text(carrier_name):
     return '(' in carrier_name and ')' in carrier_name
 
 def admin_page():
-    st.write("DEBUG: Admin page started")
+    if 'admin_authenticated' not in st.session_state:
+        st.session_state.admin_authenticated = False
+    
+    if not st.session_state.admin_authenticated:
+        st.header("🔒 Admin Access")
+        st.info("Please enter your admin credentials to access the admin panel.")
+        
+        with st.form("admin_login"):
+            username = st.text_input("Username:")
+            password = st.text_input("Password:", type="password")
+            login_button = st.form_submit_button("Login")
+            
+            if login_button:
+                # Define your admin credentials here
+                ADMIN_USERNAME = "WePayDFM"  # Change this to your desired username
+                ADMIN_PASSWORD = "AmazonDayOne"  # Change this to your desired password
+                
+                if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
+                    st.session_state.admin_authenticated = True
+                    st.success("Login successful! Redirecting...")
+                    st.rerun()
+                else:
+                    st.error("Invalid username or password. Please try again.")
+        return
+    
+    # Add logout option
+    if st.button("🚪 Logout", key="admin_logout"):
+        st.session_state.admin_authenticated = False
+        st.rerun()
+
     st.header("⚙️ Admin Panel")
     
     # Add admin notice
