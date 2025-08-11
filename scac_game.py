@@ -92,17 +92,46 @@ def save_score(player_name, score, correct, total):
 
 def get_leaderboard():
     conn = sqlite3.connect('scac_game.db')
-    df = pd.read_sql_query("""
-        SELECT Player, MAX(score) as best_score, 
-               MAX(correct_answers) as best_correct,
-               COUNT(*) as games_played,
-               MAX(timestamp) as last_played
-        FROM scores 
-        GROUP BY Player 
-        ORDER BY best_score DESC
-    """, conn)
-    conn.close()
-    return df
+    try:
+        # First check if the scores table exists
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='scores';")
+        table_exists = cursor.fetchone()
+        
+        if not table_exists:
+            # Create the scores table if it doesn't exist
+            cursor.execute("""
+                CREATE TABLE scores (
+                    Player TEXT,
+                    score INTEGER,
+                    correct_answers INTEGER,
+                    timestamp TEXT
+                )
+            """)
+            conn.commit()
+            # Return empty DataFrame
+            return pd.DataFrame(columns=['Player', 'best_score', 'best_correct', 'games_played', 'last_played'])
+        
+        # Table exists, try to read data
+        df = pd.read_sql_query("""
+            SELECT Player, MAX(score) as best_score, 
+                   MAX(correct_answers) as best_correct,
+                   COUNT(*) as games_played,
+                   MAX(timestamp) as last_played
+            FROM scores 
+            GROUP BY Player 
+            ORDER BY best_score DESC
+        """, conn)
+        
+        return df
+        
+    except Exception as e:
+        print(f"Database error: {e}")  # For debugging
+        # Return empty DataFrame as fallback
+        return pd.DataFrame(columns=['Player', 'best_score', 'best_correct', 'games_played', 'last_played'])
+    
+    finally:
+        conn.close()
 
 def delete_leaderboard_user(player_name):
     conn = sqlite3.connect('scac_game.db')
