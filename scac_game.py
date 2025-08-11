@@ -99,12 +99,13 @@ def get_leaderboard():
         table_exists = cursor.fetchone()
         
         if not table_exists:
-            # Create the scores table if it doesn't exist
+            # Create the scores table if it doesn't exist - WITH total_questions column
             cursor.execute("""
                 CREATE TABLE scores (
                     Player TEXT,
                     score INTEGER,
                     correct_answers INTEGER,
+                    total_questions INTEGER,
                     timestamp TEXT
                 )
             """)
