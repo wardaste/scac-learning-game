@@ -84,11 +84,29 @@ def update_scac(scac_id, scac_code, carrier_name, ship_mode, details):
 
 def save_score(player_name, score, correct, total):
     conn = sqlite3.connect('scac_game.db')
-    c = conn.cursor()
-    c.execute("INSERT INTO scores (Player, score, correct_answers, total_questions, timestamp) VALUES (?, ?, ?, ?, ?)",
-             (player_name, score, correct, total, datetime.now()))
-    conn.commit()
-    conn.close()
+    try:
+        c = conn.cursor()
+        
+        # Ensure table exists first
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS scores (
+                Player TEXT,
+                score INTEGER,
+                correct_answers INTEGER,
+                total_questions INTEGER,
+                timestamp TEXT
+            )
+        """)
+        
+        c.execute("INSERT INTO scores (Player, score, correct_answers, total_questions, timestamp) VALUES (?, ?, ?, ?, ?)",
+                 (player_name, score, correct, total, datetime.now().isoformat()))
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"Save score error: {e}")
+        return False
+    finally:
+        conn.close()
 
 def get_leaderboard():
     conn = sqlite3.connect('scac_game.db')
@@ -143,48 +161,83 @@ def delete_leaderboard_user(player_name):
 
 def get_enhanced_leaderboard():
     conn = sqlite3.connect('scac_game.db')
-    df = pd.read_sql_query("""
-        SELECT Player, 
-               MAX(score) as best_score, 
-               MAX(correct_answers) as best_correct,
-               COUNT(*) as games_played,
-               ROUND(AVG(CAST(correct_answers AS FLOAT) / total_questions * 100), 1) as accuracy_pct,
-               MAX(timestamp) as last_played
-        FROM scores 
-        GROUP BY Player 
-        ORDER BY best_score DESC
-    """, conn)
-    conn.close()
-    
-    # Add time in lead for top player
-    if len(df) > 0:
-        df['time_in_lead'] = ''
-        top_player = df.iloc[0]['Player']
+    try:
+        # First ensure the table exists
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='scores';")
+        table_exists = cursor.fetchone()
         
-        # Get when this player first achieved the top score
-        conn = sqlite3.connect('scac_game.db')
-        first_top_score = pd.read_sql_query("""
-            SELECT MIN(timestamp) as first_top
+        if not table_exists:
+            # Create the scores table if it doesn't exist
+            cursor.execute("""
+                CREATE TABLE scores (
+                    Player TEXT,
+                    score INTEGER,
+                    correct_answers INTEGER,
+                    total_questions INTEGER,
+                    timestamp TEXT
+                )
+            """)
+            conn.commit()
+            conn.close()
+            # Return empty DataFrame with expected columns
+            return pd.DataFrame(columns=['Player', 'best_score', 'best_correct', 'games_played', 'accuracy_pct', 'last_played', 'time_in_lead'])
+        
+        df = pd.read_sql_query("""
+            SELECT Player, 
+                   MAX(score) as best_score, 
+                   MAX(correct_answers) as best_correct,
+                   COUNT(*) as games_played,
+                   ROUND(AVG(CAST(correct_answers AS FLOAT) / total_questions * 100), 1) as accuracy_pct,
+                   MAX(timestamp) as last_played
             FROM scores 
-            WHERE Player = ? AND score = (
-                SELECT MAX(score) FROM scores WHERE Player = ?
-            )
-        """, conn, params=[top_player, top_player])
+            GROUP BY Player 
+            ORDER BY best_score DESC
+        """, conn)
         conn.close()
         
-        if not first_top_score.empty and first_top_score.iloc[0]['first_top']:
-            from datetime import datetime
-            first_top_time = datetime.fromisoformat(first_top_score.iloc[0]['first_top'])
-            time_diff = datetime.now() - first_top_time
-            days = time_diff.days
-            hours = time_diff.seconds // 3600
+        # Add time in lead for top player
+        if len(df) > 0:
+            df['time_in_lead'] = ''
+            top_player = df.iloc[0]['Player']
             
-            if days > 0:
-                df.loc[0, 'time_in_lead'] = f"{days}d {hours}h"
-            else:
-                df.loc[0, 'time_in_lead'] = f"{hours}h"
-    
-    return df
+            # Get when this player first achieved the top score
+            try:
+                conn = sqlite3.connect('scac_game.db')
+                first_top_score = pd.read_sql_query("""
+                    SELECT MIN(timestamp) as first_top
+                    FROM scores 
+                    WHERE Player = ? AND score = (
+                        SELECT MAX(score) FROM scores WHERE Player = ?
+                    )
+                """, conn, params=[top_player, top_player])
+                conn.close()
+                
+                if not first_top_score.empty and first_top_score.iloc[0]['first_top']:
+                    from datetime import datetime
+                    first_top_time = datetime.fromisoformat(first_top_score.iloc[0]['first_top'])
+                    time_diff = datetime.now() - first_top_time
+                    days = time_diff.days
+                    hours = time_diff.seconds // 3600
+                    
+                    if days > 0:
+                        df.loc[0, 'time_in_lead'] = f"{days}d {hours}h"
+                    else:
+                        df.loc[0, 'time_in_lead'] = f"{hours}h"
+            except:
+                # If time calculation fails, just leave it empty
+                pass
+        else:
+            # If no data, add the time_in_lead column
+            df['time_in_lead'] = ''
+        
+        return df
+        
+    except Exception as e:
+        print(f"Enhanced leaderboard error: {e}")
+        conn.close()
+        # Return empty DataFrame as fallback
+        return pd.DataFrame(columns=['Player', 'best_score', 'best_correct', 'games_played', 'accuracy_pct', 'last_played', 'time_in_lead'])
 
 # Game functions
 def initialize_game_state():
